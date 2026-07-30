@@ -918,7 +918,7 @@ function renderTaskItems(tasks, accId){
   return list.map(t=>`
     <div class="task-item ${t.done?'done':''}">
       <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
-      <div class="task-content">
+      <div class="task-content" onclick="editTask('${t.id}')" style="cursor:pointer">
         <div class="task-title">${esc(t.title)}</div>
         <div class="task-meta">
           ${t.dueDate?`📅 ${t.dueDate}`:''}
@@ -926,6 +926,7 @@ function renderTaskItems(tasks, accId){
           ${t.tags?` · <span class="task-tag">${esc(t.tags)}</span>`:''}
         </div>
       </div>
+      <span class="task-edit" onclick="editTask('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span>
       <span class="task-del" onclick="delTask('${t.id}')" title="删除">✕</span>
     </div>
   `).join('');
@@ -959,6 +960,15 @@ function toggleTask(id){
 function delTask(id){
   if(!confirm('确认删除此任务？'))return;
   DB.remove('tasks',id).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });
+}
+function editTask(id){
+  const t=DB.get('tasks').find(x=>x.id===id);if(!t)return;
+  modalForm('编辑任务',[
+    {key:'title',label:'任务标题',placeholder:'例如：拍摄养生茶测评视频',required:true,value:t.title},
+    {key:'dueDate',label:'截止日期',type:'date',value:t.dueDate||''},
+    {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:t.priority||'mid'},
+    {key:'tags',label:'标签',placeholder:'选题/拍摄/剪辑/发布...',value:t.tags||''},
+  ],(data)=>{DB.update('tasks',id,data).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
 }
 
 // ============ 资金管理 ============
@@ -1000,16 +1010,16 @@ function renderFinance(){
 function renderFinanceTable(items, type){
   let tableHTML='', cardHTML='';
   if(type==='asset'){
-    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(a=>`<tr><td>${esc(a.name)}</td><td><span class="badge badge-income">${esc(a.type||'其他')}</span></td><td style="font-weight:600;color:var(--success)">+¥${fmt(a.amount)}</td><td style="color:var(--text-muted)">${esc(a.note||'-')}</td><td><span class="task-del" onclick="delItem('assets','${a.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
-    cardHTML=`<div class="card-list">${items.map(a=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(a.name)}</div><div class="rec-amount" style="color:var(--success)">+¥${fmt(a.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-income">${esc(a.type||'其他')}</span></span></div>${a.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(a.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('assets','${a.id}')">删除</span></span></div></div>`).join('')}</div>`;
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(a=>`<tr><td>${esc(a.name)}</td><td><span class="badge badge-income">${esc(a.type||'其他')}</span></td><td style="font-weight:600;color:var(--success)">+¥${fmt(a.amount)}</td><td style="color:var(--text-muted)">${esc(a.note||'-')}</td><td style="white-space:nowrap"><span class="task-edit" onclick="editAsset('${a.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:8px">编辑</span><span class="task-del" onclick="delItem('assets','${a.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(a=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(a.name)}</div><div class="rec-amount" style="color:var(--success)">+¥${fmt(a.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-income">${esc(a.type||'其他')}</span></span></div>${a.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(a.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-edit" onclick="editAsset('${a.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:12px">编辑</span><span class="task-del" onclick="delItem('assets','${a.id}')">删除</span></span></div></div>`).join('')}</div>`;
   }
   if(type==='debt'){
-    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(d=>`<tr><td>${esc(d.name)}</td><td><span class="badge badge-debt">${esc(d.type||'其他')}</span></td><td style="font-weight:600;color:var(--danger)">-¥${fmt(d.amount)}</td><td style="color:var(--text-muted)">${esc(d.note||'-')}</td><td><span class="task-del" onclick="delItem('debts','${d.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
-    cardHTML=`<div class="card-list">${items.map(d=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(d.name)}</div><div class="rec-amount" style="color:var(--danger)">-¥${fmt(d.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-debt">${esc(d.type||'其他')}</span></span></div>${d.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(d.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('debts','${d.id}')">删除</span></span></div></div>`).join('')}</div>`;
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(d=>`<tr><td>${esc(d.name)}</td><td><span class="badge badge-debt">${esc(d.type||'其他')}</span></td><td style="font-weight:600;color:var(--danger)">-¥${fmt(d.amount)}</td><td style="color:var(--text-muted)">${esc(d.note||'-')}</td><td style="white-space:nowrap"><span class="task-edit" onclick="editDebt('${d.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:8px">编辑</span><span class="task-del" onclick="delItem('debts','${d.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(d=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(d.name)}</div><div class="rec-amount" style="color:var(--danger)">-¥${fmt(d.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-debt">${esc(d.type||'其他')}</span></span></div>${d.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(d.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-edit" onclick="editDebt('${d.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:12px">编辑</span><span class="task-del" onclick="delItem('debts','${d.id}')">删除</span></span></div></div>`).join('')}</div>`;
   }
   if(type==='record'){
-    tableHTML=`<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(r=>`<tr><td>${r.date||'-'}</td><td><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></td><td>${esc(r.category||'-')}</td><td style="font-weight:600;color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</td><td style="color:var(--text-muted)">${esc(r.note||'-')}</td><td><span class="task-del" onclick="delItem('records','${r.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
-    cardHTML=`<div class="card-list">${items.map(r=>`<div class="rec-card"><div class="rec-main"><div><div class="rec-name">${esc(r.category||'未分类')}</div><div class="rec-label">${r.date||'-'}</div></div><div class="rec-amount" style="color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></span></div>${r.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(r.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('records','${r.id}')">删除</span></span></div></div>`).join('')}</div>`;
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(r=>`<tr><td>${r.date||'-'}</td><td><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></td><td>${esc(r.category||'-')}</td><td style="font-weight:600;color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</td><td style="color:var(--text-muted)">${esc(r.note||'-')}</td><td style="white-space:nowrap"><span class="task-edit" onclick="editRecord('${r.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:8px">编辑</span><span class="task-del" onclick="delItem('records','${r.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(r=>`<div class="rec-card"><div class="rec-main"><div><div class="rec-name">${esc(r.category||'未分类')}</div><div class="rec-label">${r.date||'-'}</div></div><div class="rec-amount" style="color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></span></div>${r.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(r.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-edit" onclick="editRecord('${r.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:12px">编辑</span><span class="task-del" onclick="delItem('records','${r.id}')">删除</span></span></div></div>`).join('')}</div>`;
   }
   return tableHTML+cardHTML;
 }
@@ -1041,6 +1051,35 @@ function openRecordModal(){
 }
 function delItem(key,id){if(!confirm('确认删除？'))return;DB.remove(key,id).then(ok=>{ if(ok){ toast('已删除'); renderContent();renderSidebar();renderBottomNav(); } });}
 
+function editAsset(id){
+  const a=DB.get('assets').find(x=>x.id===id);if(!a)return;
+  modalForm('编辑资产',[
+    {key:'name',label:'资产名称',placeholder:'例如：余额宝',required:true,value:a.name},
+    {key:'type',label:'类型',type:'select',options:['现金','存款','理财','基金','股票','房产','车辆','其他'],value:a.type||'存款'},
+    {key:'amount',label:'金额（元）',type:'number',required:true,value:a.amount},
+    {key:'note',label:'备注',placeholder:'可选',value:a.note||''},
+  ],(data)=>{DB.update('assets',id,{...data,amount:+data.amount}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
+}
+function editDebt(id){
+  const d=DB.get('debts').find(x=>x.id===id);if(!d)return;
+  modalForm('编辑负债',[
+    {key:'name',label:'负债名称',placeholder:'例如：花呗',required:true,value:d.name},
+    {key:'type',label:'类型',type:'select',options:['信用卡','网贷','亲友借款','房贷','车贷','花呗','借呗','其他'],value:d.type||'信用卡'},
+    {key:'amount',label:'金额（元）',type:'number',required:true,value:d.amount},
+    {key:'note',label:'备注',placeholder:'可选',value:d.note||''},
+  ],(data)=>{DB.update('debts',id,{...data,amount:+data.amount}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
+}
+function editRecord(id){
+  const r=DB.get('records').find(x=>x.id===id);if(!r)return;
+  modalForm('编辑收支记录',[
+    {key:'type',label:'类型',type:'select',options:[['income','收入'],['expense','支出']],value:r.type||'expense'},
+    {key:'date',label:'日期',type:'date',value:r.date||'',required:true},
+    {key:'amount',label:'金额（元）',type:'number',required:true,value:r.amount},
+    {key:'category',label:'分类',type:'select',options:['工资','奖金','带货收入','广告费','其他收入','餐饮','交通','购物','房租','水电','娱乐','教育','医疗','其他支出'],value:r.category||'其他支出'},
+    {key:'note',label:'备注',placeholder:'可选',value:r.note||''},
+  ],(data)=>{DB.update('records',id,{...data,amount:+data.amount}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
+}
+
 // ============ 日常待办 ============
 function renderTodos(){
   const todos = DB.get('todos');
@@ -1059,7 +1098,7 @@ function renderTodos(){
       <div class="tab ${filter==='todo'?'active':''}" onclick="setTodoFilter('todo')">待办 (${todos.length-done.length})</div>
       <div class="tab ${filter==='done'?'active':''}" onclick="setTodoFilter('done')">已完成 (${done.length})</div>
     </div>
-    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-del" onclick="delTodo('${t.id}')">✕</span></div>`).join('')}</div></div>`).join('')}
+    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content" onclick="editTodo('${t.id}')" style="cursor:pointer"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-edit" onclick="editTodo('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span><span class="task-del" onclick="delTodo('${t.id}')">✕</span></div>`).join('')}</div></div>`).join('')}
     ${todos.length===0?'<div class="card"><div class="empty"><div class="emoji">✅</div>暂无待办，点击右上角添加</div></div>':''}
   `;
 }
@@ -1074,6 +1113,15 @@ function openTodoModal(){
 }
 function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done}).then(ok=>{ if(ok){ if(currentPage==='todos')renderTodos();else renderContent(); renderSidebar();renderBottomNav(); } });}}
 function delTodo(id){if(!confirm('确认删除此待办？'))return;DB.remove('todos',id).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });}
+function editTodo(id){
+  const t=DB.get('todos').find(x=>x.id===id);if(!t)return;
+  modalForm('编辑待办',[
+    {key:'title',label:'待办内容',placeholder:'例如：剪辑口播视频',required:true,value:t.title},
+    {key:'date',label:'计划日期',type:'date',value:t.date||''},
+    {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:t.priority||'mid'},
+    {key:'category',label:'分类',type:'select',options:['工作','生活','学习','健康','财务','其他'],value:t.category||'工作'},
+  ],(data)=>{DB.update('todos',id,data).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
+}
 
 // ============ 通用模态 ============
 function modalForm(title, fields, onSave){
