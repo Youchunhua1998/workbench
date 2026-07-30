@@ -293,15 +293,23 @@ const CACHE = {};
 const DB = {
   // 同步状态：0=空闲 1=进行中
   _syncing: false,
-  // 从云端拉取数据到缓存
+  // 从云端拉取数据到缓存（用REST API）
   async sync(key){
     const table = TABLE_MAP[key];
     if(!table) return [];
     const sortCol = SORT_MAP[key] || 'id';
     try{
-      const { data, error } = await supa.from(table).select('*').order(sortCol, { ascending: false });
-      if(error){ console.error('sync error:', key, error); return CACHE[key]||[]; }
-      // 转换字段名为前端格式
+      const resp = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=${sortCol}.desc`, {
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': `Bearer ${SUPA_KEY}`
+        }
+      });
+      if(!resp.ok){
+        console.error('sync error:', key, resp.status);
+        return CACHE[key]||[];
+      }
+      const data = await resp.json();
       CACHE[key] = (data || []).map(row=>fromRow(key, row));
       return CACHE[key];
     }catch(e){ console.error(e); return CACHE[key]||[]; }
@@ -310,44 +318,81 @@ const DB = {
   get(key, def=[]){
     return CACHE[key] || def;
   },
-  // 新增一条记录（先写云端，成功后更新缓存）
+  // 新增一条记录（用REST API，避免SDK兼容性问题）
   async insert(key, item){
     const table = TABLE_MAP[key];
     if(!table) return;
     const row = toRow(key, item);
     try{
-      const { error } = await supa.from(table).insert(row);
-      if(error){ console.error('insert error:', key, error); toast('⚠️ 保存失败，请检查网络'); return false; }
+      const resp = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': `Bearer ${SUPA_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(row)
+      });
+      if(!resp.ok && resp.status !== 201){
+        console.error('insert error:', key, resp.status);
+        toast('⚠️ 保存失败，请检查网络');
+        return false;
+      }
       CACHE[key] = CACHE[key] || [];
       CACHE[key].unshift(item);
       return true;
     }catch(e){ console.error('insert error:', e); toast('⚠️ 保存失败，请检查网络'); return false; }
   },
-  // 更新一条记录（先写云端，成功后更新缓存）
+  // 更新一条记录（用REST API）
   async update(key, id, patch){
     const table = TABLE_MAP[key];
     if(!table) return;
     const rowPatch = toRow(key, patch, true);
     try{
-      const { error } = await supa.from(table).update(rowPatch).eq('id', id);
-      if(error){ console.error('update error:', key, error); toast('⚠️ 更新失败，请检查网络'); return false; }
+      const resp = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': `Bearer ${SUPA_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(rowPatch)
+      });
+      if(!resp.ok && resp.status !== 204){
+        console.error('update error:', key, resp.status);
+        toast('⚠️ 更新失败');
+        return false;
+      }
       if(CACHE[key]){
         const idx = CACHE[key].findIndex(x=>x.id===id);
         if(idx>=0) Object.assign(CACHE[key][idx], patch);
       }
       return true;
-    }catch(e){ console.error('update error:', e); toast('⚠️ 更新失败，请检查网络'); return false; }
+    }catch(e){ console.error('update error:', e); toast('⚠️ 更新失败'); return false; },
   },
-  // 删除一条记录（先写云端，成功后更新缓存）
+  // 删除一条记录（直接用REST API，避免SDK兼容性问题）
   async remove(key, id){
     const table = TABLE_MAP[key];
     if(!table) return;
     try{
-      const { error } = await supa.from(table).delete().eq('id', id);
-      if(error){ console.error('remove error:', key, error); toast('⚠️ 删除失败，请检查网络'); return false; }
+      const resp = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': `Bearer ${SUPA_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if(!resp.ok && resp.status !== 204){
+        console.error('remove error:', key, resp.status);
+        toast('⚠️ 删除失败');
+        return false;
+      }
       if(CACHE[key]) CACHE[key] = CACHE[key].filter(x=>x.id!==id);
       return true;
-    }catch(e){ console.error('remove error:', e); toast('⚠️ 删除失败，请检查网络'); return false; }
+    }catch(e){ console.error('remove error:', e); toast('⚠️ 删除失败'); return false; }
   },
   // 替换整个列表（用于初始化）
   async replaceAll(key, items){
