@@ -271,6 +271,12 @@ const TABLE_MAP = {
   debts: 'debts', records: 'records', scripts: 'scripts'
 };
 
+// 各表排序字段（有的表没有created字段，用id排序）
+const SORT_MAP = {
+  tasks: 'created', todos: 'created', assets: 'id',
+  debts: 'id', records: 'date', scripts: 'created'
+};
+
 // 字段名转换（驼峰 ↔ 下划线）
 const FIELD_MAP = {
   tasks: {dueDate:'due_date'},
@@ -291,8 +297,9 @@ const DB = {
   async sync(key){
     const table = TABLE_MAP[key];
     if(!table) return [];
+    const sortCol = SORT_MAP[key] || 'id';
     try{
-      const { data, error } = await supa.from(table).select('*').order('created', { ascending: false });
+      const { data, error } = await supa.from(table).select('*').order(sortCol, { ascending: false });
       if(error){ console.error('sync error:', key, error); return CACHE[key]||[]; }
       // 转换字段名为前端格式
       CACHE[key] = (data || []).map(row=>fromRow(key, row));
