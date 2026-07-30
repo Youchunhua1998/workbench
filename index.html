@@ -370,7 +370,7 @@ const DB = {
         if(idx>=0) Object.assign(CACHE[key][idx], patch);
       }
       return true;
-    }catch(e){ console.error('update error:', e); toast('⚠️ 更新失败'); return false; },
+    }catch(e){ console.error('update error:', e); toast('⚠️ 更新失败'); return false; }
   },
   // 删除一条记录（直接用REST API，避免SDK兼容性问题）
   async remove(key, id){
