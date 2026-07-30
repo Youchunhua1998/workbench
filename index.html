@@ -246,7 +246,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
         <button class="menu-btn" onclick="toggleSidebar(true)">☰</button>
         <h2 id="pageTitle">工作台</h2>
       </div>
-      <div class="actions" id="pageActions"></div>
+      <div class="actions" id="pageActions">
+        <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
+      </div>
     </header>
     <div class="content" id="content"></div>
   </main>
@@ -280,6 +282,8 @@ const FIELD_MAP = {
 const CACHE = {};
 
 const DB = {
+  // 同步状态：0=空闲 1=进行中
+  _syncing: false,
   // 从云端拉取数据到缓存
   async sync(key){
     const table = TABLE_MAP[key];
@@ -296,40 +300,44 @@ const DB = {
   get(key, def=[]){
     return CACHE[key] || def;
   },
-  // 新增一条记录
+  // 新增一条记录（先写云端，成功后更新缓存）
   async insert(key, item){
     const table = TABLE_MAP[key];
     if(!table) return;
-    // 转换字段名
     const row = toRow(key, item);
     try{
-      await supa.from(table).insert(row);
+      const { error } = await supa.from(table).insert(row);
+      if(error){ console.error('insert error:', key, error); toast('⚠️ 保存失败，请检查网络'); return false; }
       CACHE[key] = CACHE[key] || [];
       CACHE[key].unshift(item);
-    }catch(e){ console.error('insert error:', e); }
+      return true;
+    }catch(e){ console.error('insert error:', e); toast('⚠️ 保存失败，请检查网络'); return false; }
   },
-  // 更新一条记录
+  // 更新一条记录（先写云端，成功后更新缓存）
   async update(key, id, patch){
     const table = TABLE_MAP[key];
     if(!table) return;
     const rowPatch = toRow(key, patch, true);
     try{
-      await supa.from(table).update(rowPatch).eq('id', id);
-      // 更新缓存
+      const { error } = await supa.from(table).update(rowPatch).eq('id', id);
+      if(error){ console.error('update error:', key, error); toast('⚠️ 更新失败，请检查网络'); return false; }
       if(CACHE[key]){
         const idx = CACHE[key].findIndex(x=>x.id===id);
-        if(idx>=0) Object.assign(CACHE[idx], patch);
+        if(idx>=0) Object.assign(CACHE[key][idx], patch);
       }
-    }catch(e){ console.error('update error:', e); }
+      return true;
+    }catch(e){ console.error('update error:', e); toast('⚠️ 更新失败，请检查网络'); return false; }
   },
-  // 删除一条记录
+  // 删除一条记录（先写云端，成功后更新缓存）
   async remove(key, id){
     const table = TABLE_MAP[key];
     if(!table) return;
     try{
-      await supa.from(table).delete().eq('id', id);
+      const { error } = await supa.from(table).delete().eq('id', id);
+      if(error){ console.error('remove error:', key, error); toast('⚠️ 删除失败，请检查网络'); return false; }
       if(CACHE[key]) CACHE[key] = CACHE[key].filter(x=>x.id!==id);
-    }catch(e){ console.error('remove error:', e); }
+      return true;
+    }catch(e){ console.error('remove error:', e); toast('⚠️ 删除失败，请检查网络'); return false; }
   },
   // 替换整个列表（用于初始化）
   async replaceAll(key, items){
@@ -751,9 +759,7 @@ function openIdeaModal(accId){
     {key:'idea',label:'灵感/思路',type:'textarea',placeholder:'为什么选这个话题？切入点是什么？想表达什么观点？目标人群是谁？随便写，想到什么写什么…'},
   ],(data)=>{
     const item={id:uid(),account:accId,title:data.title,idea:data.idea,script:'',done:false,created:Date.now(),updated:0};
-    DB.insert('scripts',item);
-    toast('选题已记录 ✓');
-    renderContent();
+    DB.insert('scripts',item).then(ok=>{ if(ok){ toast('选题已记录 ✓'); renderContent(); } });
   });
 }
 
@@ -832,22 +838,19 @@ function saveScriptDraft(scriptId, title, script){
 function toggleScriptDone(id){
   const list = DB.get('scripts');
   const s = list.find(x=>x.id===id);
-  if(s){s.done=!s.done;s.updated=Date.now();DB.update('scripts',id,{done:s.done,updated:s.updated});toast(s.done?'已标记完成 ✓':'已取消完成');renderContent();}
+  if(s){s.done=!s.done;s.updated=Date.now();DB.update('scripts',id,{done:s.done,updated:s.updated}).then(ok=>{ if(ok){ toast(s.done?'已标记完成 ✓':'已取消完成'); renderContent(); } });}
 }
 
 function scriptToTask(accId, id){
   const s = DB.get('scripts').find(x=>x.id===id);
   if(!s) return;
   const item={id:uid(),account:accId,title:'【脚本】'+s.title,dueDate:new Date().toISOString().slice(0,10),priority:'mid',tags:'脚本',done:false,created:Date.now()};
-  DB.insert('tasks',item);
-  toast('已转为任务 ✓');
+  DB.insert('tasks',item).then(ok=>{ if(ok){ toast('已转为任务 ✓'); renderContent(); } });
 }
 
 function delScript(id){
   if(!confirm('确认删除这个选题和脚本？删除后不可恢复。'))return;
-  DB.remove('scripts',id);
-  toast('已删除');
-  renderContent();
+  DB.remove('scripts',id).then(ok=>{ if(ok){ toast('已删除'); renderContent(); } });
 }
 
 // ============ 任务操作 ============
@@ -887,21 +890,20 @@ function openTaskModal(accId){
     {key:'tags',label:'标签',placeholder:'选题/拍摄/剪辑/发布...'},
   ],(data)=>{
     const item = {id:uid(),account:accId,...data,done:false,created:Date.now()};
-    DB.insert('tasks', item);
-    toast('任务已添加');
-    renderContent();renderSidebar();renderBottomNav();
+    DB.insert('tasks', item).then(ok=>{
+      if(ok){ toast('任务已添加 ✓'); renderContent();renderSidebar();renderBottomNav(); }
+    });
   });
 }
 
 function toggleTask(id){
   const tasks = DB.get('tasks');
   const t = tasks.find(x=>x.id===id);
-  if(t){t.done=!t.done;DB.update('tasks',id,{done:t.done});renderContent();renderSidebar();renderBottomNav();}
+  if(t){t.done=!t.done;DB.update('tasks',id,{done:t.done}).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });}
 }
 function delTask(id){
   if(!confirm('确认删除此任务？'))return;
-  DB.remove('tasks',id);
-  renderContent();renderSidebar();renderBottomNav();
+  DB.remove('tasks',id).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });
 }
 
 // ============ 资金管理 ============
@@ -963,7 +965,7 @@ function openAssetModal(){
     {key:'type',label:'类型',type:'select',options:['现金','存款','理财','基金','股票','房产','车辆','其他'],value:'存款'},
     {key:'amount',label:'金额（元）',type:'number',required:true},
     {key:'note',label:'备注',placeholder:'可选'},
-  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('assets',item);toast('资产已添加');renderContent();});
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('assets',item).then(ok=>{ if(ok){ toast('资产已添加 ✓'); renderContent(); } });});
 }
 function openDebtModal(){
   modalForm('添加负债',[
@@ -971,7 +973,7 @@ function openDebtModal(){
     {key:'type',label:'类型',type:'select',options:['信用卡','网贷','亲友借款','房贷','车贷','花呗','借呗','其他'],value:'信用卡'},
     {key:'amount',label:'金额（元）',type:'number',required:true},
     {key:'note',label:'备注',placeholder:'可选'},
-  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('debts',item);toast('负债已添加');renderContent();});
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('debts',item).then(ok=>{ if(ok){ toast('负债已添加 ✓'); renderContent(); } });});
 }
 function openRecordModal(){
   modalForm('记一笔收支',[
@@ -980,9 +982,9 @@ function openRecordModal(){
     {key:'amount',label:'金额（元）',type:'number',required:true},
     {key:'category',label:'分类',type:'select',options:['工资','奖金','带货收入','广告费','其他收入','餐饮','交通','购物','房租','水电','娱乐','教育','医疗','其他支出'],value:'其他支出'},
     {key:'note',label:'备注',placeholder:'可选'},
-  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('records',item);toast('记录已添加');renderContent();});
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('records',item).then(ok=>{ if(ok){ toast('记录已添加 ✓'); renderContent(); } });});
 }
-function delItem(key,id){if(!confirm('确认删除？'))return;DB.remove(key,id);toast('已删除');renderContent();renderSidebar();renderBottomNav();}
+function delItem(key,id){if(!confirm('确认删除？'))return;DB.remove(key,id).then(ok=>{ if(ok){ toast('已删除'); renderContent();renderSidebar();renderBottomNav(); } });}
 
 // ============ 日常待办 ============
 function renderTodos(){
@@ -1013,10 +1015,10 @@ function openTodoModal(){
     {key:'date',label:'计划日期',type:'date',value:new Date().toISOString().slice(0,10)},
     {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:'mid'},
     {key:'category',label:'分类',type:'select',options:['工作','生活','学习','健康','财务','其他'],value:'工作'},
-  ],(data)=>{const item={id:uid(),...data,done:false,created:Date.now()};DB.insert('todos',item);toast('待办已添加');renderContent();renderSidebar();renderBottomNav();});
+  ],(data)=>{const item={id:uid(),...data,done:false,created:Date.now()};DB.insert('todos',item).then(ok=>{ if(ok){ toast('待办已添加 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
 }
-function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done});if(currentPage==='todos')renderTodos();else renderContent();renderSidebar();renderBottomNav();}}
-function delTodo(id){if(!confirm('确认删除此待办？'))return;DB.remove('todos',id);renderContent();renderSidebar();renderBottomNav();}
+function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done}).then(ok=>{ if(ok){ if(currentPage==='todos')renderTodos();else renderContent(); renderSidebar();renderBottomNav(); } });}}
+function delTodo(id){if(!confirm('确认删除此待办？'))return;DB.remove('todos',id).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });}
 
 // ============ 通用模态 ============
 function modalForm(title, fields, onSave){
@@ -1115,13 +1117,33 @@ async function init(){
   renderBottomNav();
   renderContent();
   
-  // 每30秒自动同步一次（保持多端数据新鲜）
+  // 页面重新可见时自动同步（切回标签页时拉取最新数据）
+  document.addEventListener('visibilitychange', async ()=>{
+    if(!document.hidden){
+      await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+      renderSidebar();
+      renderBottomNav();
+      renderContent();
+    }
+  });
+  
+  // 每15秒自动同步一次（保持多端数据新鲜）
   setInterval(async()=>{
     await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
     renderSidebar();
     renderBottomNav();
     if(['overview','todos','finance'].includes(currentPage)) renderContent();
-  }, 30000);
+  }, 15000);
+}
+
+// 手动强制同步（可用于按钮调用）
+async function forceSync(){
+  toast('正在同步...');
+  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+  renderSidebar();
+  renderBottomNav();
+  renderContent();
+  toast('同步完成 ✓');
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
 else init();
