@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="尤的工作台">
+<meta name="theme-color" content="#831843">
+<title>尤的工作台</title>
+<style>
+:root{
+  --bg:#fdf5f8; --card:#fff; --border:#f0dce4; --text:#3d2431;
+  --text-muted:#9b6b7e; --primary:#ec4899; --primary-dark:#db2777;
+  --primary-light:#fce7f3; --success:#10b981; --danger:#ef4444;
+  --warning:#f59e0b; --sidebar:#831843; --sidebar-hover:#9d174d;
+  --sidebar-active:#ec4899;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100dvh;margin:0;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:16px}
+.app{display:flex;height:100dvh;overflow:hidden;box-sizing:border-box}
+
+.sidebar{width:230px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;flex-shrink:0;transition:transform .2s}
+.sidebar-header{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sidebar-header .logo{width:28px;height:28px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-header p{font-size:11px;color:#94a3b8;margin-top:6px}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.nav-section{margin-bottom:8px}
+.nav-section-title{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;padding:8px 12px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;font-size:15px;color:#cbd5e1;transition:background .15s,color .15s;user-select:none}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:500}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center}
+.nav-item .nav-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-sub{padding-left:42px;font-size:13px;color:#94a3b8}
+.account-sub.active{background:var(--sidebar-active);color:#fff}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{min-height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;padding-top:env(safe-area-inset-top,0px);flex-shrink:0;gap:8px;box-sizing:border-box;position:sticky;top:0}
+.topbar h2{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-weight:500;transition:all .15s;background:transparent;font-family:inherit;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover,.btn-primary:active{background:var(--primary-dark)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+.btn-ghost:hover,.btn-ghost:active{background:var(--bg);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:14px}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn-success{background:var(--success);color:#fff}
+.content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+.card-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title .left{display:flex;align-items:center;gap:8px}
+.card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.stat-card .label{font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.stat-card .value{font-size:24px;font-weight:700;letter-spacing:-.5px;word-break:break-all}
+.stat-card .sub{font-size:11px;margin-top:4px;color:var(--text-muted)}
+.stat-card .icon{position:absolute;right:12px;top:12px;font-size:20px;opacity:.15}
+.stat-card.positive .value{color:var(--success)}
+.stat-card.negative .value{color:var(--danger)}
+
+.task-list{display:flex;flex-direction:column;gap:8px}
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid transparent;transition:border-color .15s}
+.task-item:hover{border-color:var(--border)}
+.task-item.done{opacity:.55}
+.task-item.done .task-title{text-decoration:line-through;color:var(--text-muted)}
+.task-checkbox{width:20px;height:20px;border:2px solid var(--text-muted);border-radius:5px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;margin-top:1px}
+.task-checkbox:hover{border-color:var(--primary)}
+.task-checkbox.checked{background:var(--success);border-color:var(--success);color:#fff}
+.task-checkbox.checked::after{content:"✓";font-size:12px;font-weight:700}
+.task-content{flex:1;min-width:0}
+.task-title{font-size:16px;font-weight:500;word-break:break-word}
+.task-meta{font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.task-tag{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--primary-light);color:var(--primary)}
+.priority-high{color:var(--danger)}
+.priority-mid{color:var(--warning)}
+.priority-low{color:var(--text-muted)}
+.task-del{opacity:0;color:var(--danger);cursor:pointer;font-size:14px;transition:opacity .15s;flex-shrink:0;padding:4px}
+.task-item:hover .task-del,.task-item:active .task-del{opacity:1}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:7px 14px;border-radius:20px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1px solid var(--border);transition:all .15s;user-select:none}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.form-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.input,.select{padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:16px;outline:none;background:#fff;color:var(--text);font-family:inherit;width:100%}
+.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
+.form-label{font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:500}
+
+.table-wrap{display:none;overflow-x:auto}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:15px}
+.table-wrap th{text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap}
+.table-wrap td{padding:10px 8px;border-bottom:1px solid var(--border)}
+.table-wrap tr:hover td{background:var(--bg)}
+
+.card-list{display:none;flex-direction:column;gap:10px}
+.rec-card{background:var(--bg);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.rec-card .rec-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.rec-card .rec-label{font-size:11px;color:var(--text-muted)}
+.rec-card .rec-val{font-size:13px;font-weight:500;word-break:break-word;text-align:right}
+.rec-card .rec-main{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.rec-card .rec-name{font-size:14px;font-weight:600;word-break:break-word;flex:1}
+.rec-card .rec-amount{font-size:16px;font-weight:700;white-space:nowrap}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-income{background:#e6fffa;color:#065f46}
+.badge-expense{background:#fff5f5;color:#9b2c2c}
+.badge-debt{background:#fffaf0;color:#9c4221}
+
+.progress-bar{width:100%;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+
+.empty{text-align:center;padding:40px 16px;color:var(--text-muted);font-size:13px}
+.empty .emoji{font-size:32px;margin-bottom:8px;opacity:.4}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:var(--card);border-radius:12px;padding:20px;width:440px;max-width:100%;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:2000;animation:toastIn .25s;max-width:90vw;text-align:center}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+.finance-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.finance-card{padding:14px;border-radius:10px;color:#fff}
+.finance-card.assets{background:linear-gradient(135deg,#ec4899,#db2777)}
+.finance-card.debts{background:linear-gradient(135deg,#f43f5e,#e11d48)}
+.finance-card.net{background:linear-gradient(135deg,#10b981,#059669)}
+.finance-card .label{font-size:11px;opacity:.85;margin-bottom:4px}
+.finance-card .value{font-size:22px;font-weight:700;word-break:break-all}
+
+.todo-group{margin-bottom:18px}
+.todo-group-title{font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.todo-count{font-size:11px;background:var(--card);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
+
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:8px 0 env(safe-area-inset-bottom,0px);z-index:100;justify-content:space-around;align-items:center;box-sizing:border-box}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:11px;transition:color .15s;user-select:none}
+.bn-item .bn-icon{font-size:24px}
+.bn-item.active{color:var(--primary);font-weight:600}
+
+/* === 爆款灵感卡片 === */
+.insight-card{background:linear-gradient(135deg,#fff 0%,#f8f9ff 100%);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;transition:all .15s;cursor:default}
+.insight-card:hover{box-shadow:0 2px 8px rgba(79,110,247,.1);border-color:var(--primary-light)}
+.insight-card-match{border-color:#9ae6b4;background:linear-gradient(135deg,#f0fff4 0%,#fff 100%)}
+.insight-card-match:hover{box-shadow:0 2px 8px rgba(56,161,105,.15);border-color:#68d391}
+
+/* === 选题脚本区 === */
+.script-stat{flex:1;min-width:90px;background:var(--bg);border-radius:8px;padding:10px 12px;text-align:center}
+.script-stat-num{font-size:20px;font-weight:700}
+.script-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.script-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+.script-item.script-done{opacity:.6}
+.script-item.script-done .script-item-title{text-decoration:line-through}
+.script-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.script-item-title{font-size:17px;font-weight:600;word-break:break-word;flex:1;min-width:0}
+.script-item-idea{font-size:14px;color:var(--text-muted);background:#fffbeb;padding:8px 12px;border-radius:6px;margin-bottom:8px;line-height:1.6;word-break:break-word}
+.script-item-preview{font-size:15px;color:var(--text);line-height:1.7;margin-bottom:8px;word-break:break-word}
+.script-item-meta{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.script-item-actions{display:flex;gap:6px;flex-wrap:wrap}
+.insight-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.insight-rank{background:var(--primary);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;min-width:24px;text-align:center}
+.insight-platform{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:500}
+.insight-platform.dy{background:#000;color:#fff}
+.insight-platform.xhs{background:#ff2442;color:#fff}
+.insight-platform.wb{background:#e6162d;color:#fff}
+.insight-platform.zhihu{background:#0084ff;color:#fff}
+.insight-platform.baidu{background:#2932e1;color:#fff}
+.insight-platform.toutiao{background:#ff0000;color:#fff}
+.insight-title{font-size:14px;font-weight:600;line-height:1.5;margin-bottom:6px;word-break:break-word}
+.insight-hot{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px}
+.insight-hot .fire{color:var(--danger)}
+.insight-actions{display:flex;gap:6px;margin-top:10px}
+.insight-btn{padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid var(--border);background:var(--card);cursor:pointer;color:var(--text-muted);transition:all .15s}
+.insight-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.insight-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.insight-source-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.insight-source-tab{padding:4px 10px;font-size:12px;border-radius:6px;background:var(--bg);color:var(--text-muted);border:1px solid var(--border);cursor:pointer;user-select:none}
+.insight-source-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.refresh-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.refresh-bar .last-update{font-size:11px;color:var(--text-muted)}
+.loading-dots{display:inline-flex;gap:3px}
+.loading-dots span{width:5px;height:5px;background:var(--primary);border-radius:50%;animation:bounce .6s infinite alternate}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{to{opacity:.3;transform:translateY(-3px)}}
+
+@media(max-width:768px){
+  .app{flex-direction:column;padding-bottom:0}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:230px;z-index:200;transform:translateX(-100%);transition:transform .25s}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150}
+  .sidebar-overlay.show{display:block}
+  .main{width:100%;flex:1}
+  .content{padding:12px 12px calc(68px + env(safe-area-inset-bottom,0px))}
+  .bottom-nav{display:flex}
+  .table-wrap{display:none!important}
+  .card-list{display:flex!important}
+  .finance-summary{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .stat-card .value{font-size:20px}
+  .stat-card .sub{font-size:10px}
+  .topbar{padding:0 12px;padding-top:env(safe-area-inset-top,0px)}
+  .topbar h2{font-size:15px}
+  .menu-btn{display:flex!important}
+  .btn-sm{padding:6px 12px;font-size:14px}
+  .modal{border-radius:12px 12px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-height:80vh}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .toast{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+}
+@media(min-width:769px){
+  .table-wrap{display:block}
+  .card-list{display:none}
+  .menu-btn{display:none!important}
+}
+.menu-btn{display:none;background:none;border:none;font-size:22px;cursor:pointer;padding:4px 8px;color:var(--text);align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h1><span class="logo">🚀</span> <span>尤的工作台</span></h1>
+      <p>个人运营管理中枢</p>
+    </div>
+    <nav class="sidebar-nav" id="nav"></nav>
+    <div class="sidebar-footer">
+      <span id="todayDate"></span>
+      <span id="taskCount">0 待办</span>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <button class="menu-btn" onclick="toggleSidebar(true)">☰</button>
+        <h2 id="pageTitle">工作台</h2>
+      </div>
+      <div class="actions" id="pageActions"></div>
+    </header>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<nav class="bottom-nav" id="bottomNav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============ 数据层（Supabase 云端） ============
+const SUPA_URL = 'https://syhnjmqhsxmmpfcuqpea.supabase.co';
+const SUPA_KEY = 'sb_publishable_OecGX-l8eCbVgDm4hMkbiA_cOwC1aoN';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// 表名映射
+const TABLE_MAP = {
+  tasks: 'tasks', todos: 'todos', assets: 'assets',
+  debts: 'debts', records: 'records', scripts: 'scripts'
+};
+
+// 字段名转换（驼峰 ↔ 下划线）
+const FIELD_MAP = {
+  tasks: {dueDate:'due_date'},
+  todos: {},
+  assets: {},
+  debts: {},
+  records: {},
+  scripts: {}
+};
+
+// 本地缓存（用于快速渲染，云端为准）
+const CACHE = {};
+
+const DB = {
+  // 从云端拉取数据到缓存
+  async sync(key){
+    const table = TABLE_MAP[key];
+    if(!table) return [];
+    try{
+      const { data, error } = await supa.from(table).select('*').order('created', { ascending: false });
+      if(error){ console.error('sync error:', key, error); return CACHE[key]||[]; }
+      // 转换字段名为前端格式
+      CACHE[key] = (data || []).map(row=>fromRow(key, row));
+      return CACHE[key];
+    }catch(e){ console.error(e); return CACHE[key]||[]; }
+  },
+  // 读取缓存数据（同步，用于渲染）
+  get(key, def=[]){
+    return CACHE[key] || def;
+  },
+  // 新增一条记录
+  async insert(key, item){
+    const table = TABLE_MAP[key];
+    if(!table) return;
+    // 转换字段名
+    const row = toRow(key, item);
+    try{
+      await supa.from(table).insert(row);
+      CACHE[key] = CACHE[key] || [];
+      CACHE[key].unshift(item);
+    }catch(e){ console.error('insert error:', e); }
+  },
+  // 更新一条记录
+  async update(key, id, patch){
+    const table = TABLE_MAP[key];
+    if(!table) return;
+    const rowPatch = toRow(key, patch, true);
+    try{
+      await supa.from(table).update(rowPatch).eq('id', id);
+      // 更新缓存
+      if(CACHE[key]){
+        const idx = CACHE[key].findIndex(x=>x.id===id);
+        if(idx>=0) Object.assign(CACHE[idx], patch);
+      }
+    }catch(e){ console.error('update error:', e); }
+  },
+  // 删除一条记录
+  async remove(key, id){
+    const table = TABLE_MAP[key];
+    if(!table) return;
+    try{
+      await supa.from(table).delete().eq('id', id);
+      if(CACHE[key]) CACHE[key] = CACHE[key].filter(x=>x.id!==id);
+    }catch(e){ console.error('remove error:', e); }
+  },
+  // 替换整个列表（用于初始化）
+  async replaceAll(key, items){
+    const table = TABLE_MAP[key];
+    if(!table) return;
+    try{
+      await supa.from(table).delete().neq('id','___none___');
+      if(items.length){
+        const rows = items.map(i=>toRow(key, i));
+        await supa.from(table).insert(rows);
+      }
+      CACHE[key] = items;
+    }catch(e){ console.error('replaceAll error:', e); }
+  }
+};
+
+// 转换为数据库行格式
+function toRow(key, item, patch=false){
+  const row = {};
+  if(!patch){
+    // 完整插入
+    if(key==='tasks'){
+      row.id = item.id;
+      row.account = item.account;
+      row.title = item.title;
+      row.due_date = item.dueDate || null;
+      row.priority = item.priority;
+      row.tags = item.tags;
+      row.done = item.done;
+      row.created = item.created;
+    } else if(key==='todos'){
+      row.id = item.id;
+      row.title = item.title;
+      row.date = item.date;
+      row.priority = item.priority;
+      row.category = item.category;
+      row.done = item.done;
+      row.created = item.created;
+    } else if(key==='assets'||key==='debts'){
+      row.id = item.id;
+      row.name = item.name;
+      row.type = item.type;
+      row.amount = item.amount;
+      row.note = item.note;
+    } else if(key==='records'){
+      row.id = item.id;
+      row.type = item.type;
+      row.date = item.date;
+      row.amount = item.amount;
+      row.category = item.category;
+      row.note = item.note;
+    } else if(key==='scripts'){
+      row.id = item.id;
+      row.account = item.account;
+      row.title = item.title;
+      row.idea = item.idea;
+      row.script = item.script;
+      row.done = item.done;
+      row.created = item.created;
+      row.updated = item.updated || 0;
+    }
+  } else {
+    // 部分更新
+    if(key==='tasks'){
+      if('account' in item) row.account = item.account;
+      if('title' in item) row.title = item.title;
+      if('dueDate' in item) row.due_date = item.dueDate;
+      if('priority' in item) row.priority = item.priority;
+      if('tags' in item) row.tags = item.tags;
+      if('done' in item) row.done = item.done;
+      if('created' in item) row.created = item.created;
+    } else if(key==='todos'){
+      if('title' in item) row.title = item.title;
+      if('date' in item) row.date = item.date;
+      if('priority' in item) row.priority = item.priority;
+      if('category' in item) row.category = item.category;
+      if('done' in item) row.done = item.done;
+    } else if(key==='assets'||key==='debts'){
+      if('name' in item) row.name = item.name;
+      if('type' in item) row.type = item.type;
+      if('amount' in item) row.amount = item.amount;
+      if('note' in item) row.note = item.note;
+    } else if(key==='records'){
+      if('type' in item) row.type = item.type;
+      if('date' in item) row.date = item.date;
+      if('amount' in item) row.amount = item.amount;
+      if('category' in item) row.category = item.category;
+      if('note' in item) row.note = item.note;
+    } else if(key==='scripts'){
+      if('account' in item) row.account = item.account;
+      if('title' in item) row.title = item.title;
+      if('idea' in item) row.idea = item.idea;
+      if('script' in item) row.script = item.script;
+      if('done' in item) row.done = item.done;
+      if('updated' in item) row.updated = item.updated;
+    }
+  }
+  return row;
+}
+
+// 转换数据库行为前端对象
+function fromRow(key, row){
+  if(key==='tasks'){
+    return {id:row.id, account:row.account, title:row.title, dueDate:row.due_date, priority:row.priority, tags:row.tags, done:row.done, created:row.created};
+  } else if(key==='todos'){
+    return {id:row.id, title:row.title, date:row.date, priority:row.priority, category:row.category, done:row.done, created:row.created};
+  } else if(key==='assets'||key==='debts'){
+    return {id:row.id, name:row.name, type:row.type, amount:row.amount, note:row.note};
+  } else if(key==='records'){
+    return {id:row.id, type:row.type, date:row.date, amount:row.amount, category:row.category, note:row.note};
+  } else if(key==='scripts'){
+    return {id:row.id, account:row.account, title:row.title, idea:row.idea, script:row.script, done:row.done, created:row.created, updated:row.updated};
+  }
+  return row;
+}
+
+const ACCOUNTS = [
+  {id:'acc1',name:'养生小尤',icon:'🌙',color:'#ec4899',desc:'养生好物种草带货',
+   keywords:['养生','健康','熬夜','失眠','护肝','保健品','枸杞','保温杯','脱发','亚健康','排毒','祛湿','补气血','抗衰老','茶','维生素','益生菌','褪黑素','护眼','颈椎','腰酸','疲劳','睡眠','排毒养颜','气血','祛痘','黑眼圈','代谢','免疫力','抗初老','抗氧化','食补','代餐','低糖','无糖','养胃','润肺','补肾','养发','生发','防脱']},
+  {id:'acc2',name:'要早睡的尤',icon:'☀️',color:'#f59e0b',desc:'自律生活人设IP',
+   keywords:['早起','自律','晨跑','习惯','时间管理','打卡','坚持','奋斗','励志','成长','效率','读书','运动','健身','跑步','瑜伽','早餐','晨练','学习','规划','目标','复盘','早睡','睡眠','作息','自律生活','极简','自律vlog','晨间','日常','自我提升','时间','计划','日记','手帐','效率工具','专注','番茄','冥想','戒手机']},
+  {id:'acc3',name:'不爱吃姜',icon:'💍',color:'#ec4899',desc:'情感口播内容',
+   keywords:['婚姻','情感','夫妻','恋爱','离婚','婆媳','相亲','爱情','结婚','家庭','关系','沟通','出轨','复合','挽回','分手','异地','冷战','吵架','婆媳关系','全职太太','丧偶式','育儿','二胎','经济独立','丈母娘','彩礼','房本','婚后','二婚','闪婚','丁克','备孕','孕期','产后','坐月子','边界感','情绪价值','依恋','安全感','信任','背叛']},
+];
+
+const PAGES = {
+  overview:{title:'工作台总览'},
+  acc1:{title:ACCOUNTS[0].name},
+  acc2:{title:ACCOUNTS[1].name},
+  acc3:{title:ACCOUNTS[2].name},
+  finance:{title:'资金管理'},
+  todos:{title:'日常待办'},
+};
+
+const BN_ITEMS = [
+  {page:'overview',icon:'🏠',label:'总览'},
+  {page:'acc1',icon:'🌙',label:'小尤'},
+  {page:'acc2',icon:'☀️',label:'早睡'},
+  {page:'acc3',icon:'💍',label:'不吃姜'},
+  {page:'finance',icon:'💰',label:'资金'},
+  {page:'todos',icon:'✅',label:'待办'},
+];
+
+let currentPage = 'overview';
+let currentTodoFilter = 'all';
+
+// ============ 侧边栏 ============
+function toggleSidebar(open){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  if(open){sb.classList.add('open');ov.classList.add('show')}
+  else{sb.classList.remove('open');ov.classList.remove('show')}
+}
+
+function renderSidebar(){
+  const nav = document.getElementById('nav');
+  const todoCount = DB.get('todos').filter(t=>!t.done).length;
+  nav.innerHTML = `
+    <div class="nav-section">
+      <div class="nav-section-title">总览</div>
+      <div class="nav-item ${currentPage==='overview'?'active':''}" onclick="go('overview')">
+        <span class="icon">🏠</span><span class="nav-text">工作台总览</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">工作任务</div>
+      ${ACCOUNTS.map(a=>`
+        <div class="nav-item account-sub ${currentPage===a.id?'active':''}" onclick="go('${a.id}')">
+          <span class="icon">${a.icon}</span><span class="nav-text">${a.name}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">资金管理</div>
+      <div class="nav-item ${currentPage==='finance'?'active':''}" onclick="go('finance')">
+        <span class="icon">💰</span><span class="nav-text">资金管理</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">日常</div>
+      <div class="nav-item ${currentPage==='todos'?'active':''}" onclick="go('todos')">
+        <span class="icon">✅</span><span class="nav-text">日常待办</span>
+        ${todoCount?`<span class="nav-badge">${todoCount}</span>`:''}
+      </div>
+    </div>
+  `;
+}
+
+function renderBottomNav(){
+  const bn = document.getElementById('bottomNav');
+  bn.innerHTML = BN_ITEMS.map(b=>`
+    <div class="bn-item ${currentPage===b.page?'active':''}" onclick="go('${b.page}')">
+      <span class="bn-icon">${b.icon}</span>
+      <span>${b.label}</span>
+    </div>
+  `).join('');
+}
+
+function go(page){
+  currentPage = page;
+  toggleSidebar(false);
+  renderSidebar();
+  renderBottomNav();
+  renderContent();
+  document.getElementById('content').scrollTop=0;
+}
+
+// ============ 内容路由 ============
+function renderContent(){
+  document.getElementById('pageTitle').textContent = PAGES[currentPage].title;
+  if(currentPage==='overview') return renderOverview();
+  if(currentPage.startsWith('acc')) return renderAccount(currentPage);
+  if(currentPage==='finance') return renderFinance();
+  if(currentPage==='todos') return renderTodos();
+}
+
+// ============ 总览页 ============
+function renderOverview(){
+  const tasks = DB.get('tasks');
+  const todos = DB.get('todos');
+  const todoUndone = todos.filter(t=>!t.done).length;
+  const todoDone = todos.filter(t=>t.done).length;
+  const assets = DB.get('assets');
+  const debts = DB.get('debts');
+  const records = DB.get('records');
+  const totalAsset = assets.reduce((s,a)=>s+(+a.amount||0),0);
+  const totalDebt = debts.reduce((s,d)=>s+(+d.amount||0),0);
+  const netWorth = totalAsset - totalDebt;
+  const todayISO = new Date().toISOString().slice(0,7);
+  const monthRecords = records.filter(r=>r.date && r.date.slice(0,7)===todayISO);
+  const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+(+r.amount||0),0);
+  const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+(+r.amount||0),0);
+  const accStats = ACCOUNTS.map(a=>{
+    const accTasks = tasks.filter(t=>t.account===a.id);
+    const done = accTasks.filter(t=>t.done).length;
+    const total = accTasks.length;
+    return {...a, done, total, pct: total?Math.round(done/total*100):0};
+  });
+
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card positive">
+        <div class="label">净资产</div>
+        <div class="value">¥${fmt(netWorth)}</div>
+        <div class="sub">资产 ¥${fmt(totalAsset)}<br>负债 ¥${fmt(totalDebt)}</div>
+        <div class="icon">💎</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">本月结余</div>
+        <div class="value" style="color:${income-expense>=0?'var(--success)':'var(--danger)'}">¥${fmt(income-expense)}</div>
+        <div class="sub">收 ¥${fmt(income)}<br>支 ¥${fmt(expense)}</div>
+        <div class="icon">📊</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">待办任务</div>
+        <div class="value">${todoUndone}</div>
+        <div class="sub">已完成 ${todoDone}<br>共 ${todos.length} 项</div>
+        <div class="icon">✅</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="left"><span class="dot"></span>账号运营概览</span></div>
+      <div class="task-list">
+        ${accStats.map(a=>`
+          <div class="task-item" style="cursor:pointer;align-items:center" onclick="go('${a.id}')">
+            <div style="font-size:20px">${a.icon}</div>
+            <div class="task-content">
+              <div class="task-title">${a.name}</div>
+              <div class="task-meta">${a.desc} · ${a.done}/${a.total} 完成</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${a.pct}%;background:${a.color}"></div></div>
+            </div>
+            <div style="font-weight:600;color:${a.color};font-size:13px;white-space:nowrap">${a.pct}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <span class="left"><span class="dot"></span>今日待办</span>
+        <button class="btn btn-primary btn-sm" onclick="go('todos')">查看全部</button>
+      </div>
+      <div class="task-list">
+        ${todos.filter(t=>!t.done).slice(0,5).map(t=>`
+          <div class="task-item">
+            <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div>
+            <div class="task-content">
+              <div class="task-title">${esc(t.title)}</div>
+              <div class="task-meta">${t.date||'今日'} ${t.priority?`· <span class="priority-${t.priority}">${{high:'高',mid:'中',low:'低'}[t.priority]}</span>`:''}</div>
+            </div>
+          </div>
+        `).join('')}
+        ${todos.filter(t=>!t.done).length===0?'<div class="empty"><div class="emoji">🎉</div>全部完成，干得漂亮！</div>':''}
+      </div>
+    </div>
+  `;
+  document.getElementById('pageActions').innerHTML = '';
+}
+
+// ============ 账号详情页 ============
+function renderAccount(accId){
+  const acc = ACCOUNTS.find(a=>a.id===accId);
+  const tasks = DB.get('tasks').filter(t=>t.account===accId);
+  const done = tasks.filter(t=>t.done).length;
+
+  document.getElementById('pageActions').innerHTML = `
+    <button class="btn btn-primary btn-sm" onclick="openTaskModal('${accId}')">+ 任务</button>
+  `;
+
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="border-left:3px solid ${acc.color}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px">${acc.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:18px;font-weight:700">${acc.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${acc.desc}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:22px;font-weight:700;color:${acc.color}">${done}/${tasks.length}</div>
+          <div style="font-size:11px;color:var(--text-muted)">任务完成</div>
+        </div>
+      </div>
+      <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${tasks.length?Math.round(done/tasks.length*100):0}%;background:${acc.color}"></div></div>
+    </div>
+
+    ${renderScriptSection(acc)}
+
+    <div class="card">
+      <div class="card-title">
+        <span class="left"><span class="dot" style="background:${acc.color}"></span>任务清单</span>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="setAccFilter('${accId}','all')">全部</button>
+          <button class="btn btn-ghost btn-sm" onclick="setAccFilter('${accId}','todo')">待办</button>
+          <button class="btn btn-ghost btn-sm" onclick="setAccFilter('${accId}','done')">完成</button>
+        </div>
+      </div>
+      <div class="task-list" id="taskList">
+        ${renderTaskItems(tasks, accId)}
+      </div>
+    </div>
+  `;
+}
+
+// ============ 选题与脚本模块 ============
+function renderScriptSection(acc){
+  const scripts = DB.get('scripts').filter(s=>s.account===acc.id);
+  const ideas = scripts.filter(s=>!s.script);       // 仅选题，未写脚本
+  const drafted = scripts.filter(s=>s.script && !s.done); // 已写脚本未完成
+  const finished = scripts.filter(s=>s.done);        // 已完成
+
+  return `
+    <div class="card">
+      <div class="card-title">
+        <span class="left"><span class="dot" style="background:${acc.color}"></span>💡 选题灵感 & 脚本</span>
+        <button class="btn btn-primary btn-sm" onclick="openIdeaModal('${acc.id}')">+ 记选题</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="script-stat" style="border-top:3px solid var(--warning)">
+          <div class="script-stat-num">${ideas.length}</div>
+          <div class="script-stat-label">待写脚本</div>
+        </div>
+        <div class="script-stat" style="border-top:3px solid var(--primary)">
+          <div class="script-stat-num">${drafted.length}</div>
+          <div class="script-stat-label">脚本草稿</div>
+        </div>
+        <div class="script-stat" style="border-top:3px solid var(--success)">
+          <div class="script-stat-num">${finished.length}</div>
+          <div class="script-stat-label">已完成</div>
+        </div>
+      </div>
+
+      <div id="scriptsList">
+        ${renderScriptItems(acc.id, scripts)}
+      </div>
+    </div>
+  `;
+}
+
+function renderScriptItems(accId, scripts){
+  if(!scripts.length){
+    return '<div class="empty"><div class="emoji">💡</div>还没有选题，随时想到随时点「+ 记选题」记录下来</div>';
+  }
+  // 按时间倒序
+  const list = [...scripts].sort((a,b)=>(b.created||0)-(a.created||0));
+  return list.map(s=>{
+    const statusBadge = s.done
+      ? '<span class="badge" style="background:#c6f6d5;color:#22543d">✅ 已完成</span>'
+      : s.script
+      ? '<span class="badge" style="background:var(--primary-light);color:var(--primary)">📝 脚本草稿</span>'
+      : '<span class="badge" style="background:#feebc8;color:#7b341e">💡 待写脚本</span>';
+    const previewText = s.script ? esc(s.script).replace(/\n/g,' ') : '<span style="color:var(--text-muted)">还没写脚本，点「写脚本」开始创作</span>';
+    const preview = previewText.length > 120 ? previewText.slice(0,120)+'…' : previewText;
+    return `
+      <div class="script-item ${s.done?'script-done':''}">
+        <div class="script-item-header">
+          <div class="script-item-title">${esc(s.title)}</div>
+          ${statusBadge}
+        </div>
+        ${s.idea ? `<div class="script-item-idea">💭 ${esc(s.idea)}</div>` : ''}
+        <div class="script-item-preview">${preview}</div>
+        <div class="script-item-meta">
+          ${s.created?new Date(s.created).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(/\//g,'-'):''}
+          ${s.updated?` · 编辑于 ${new Date(s.updated).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(/\//g,'-')}`:''}
+        </div>
+        <div class="script-item-actions">
+          <button class="insight-btn primary" onclick="openScriptEditor('${accId}','${s.id}')">${s.script?'✏️ 编辑脚本':'✍️ 写脚本'}</button>
+          <button class="insight-btn" onclick="toggleScriptDone('${s.id}')">${s.done?'↩️ 取消完成':'✅ 标记完成'}</button>
+          <button class="insight-btn" onclick="scriptToTask('${accId}','${s.id}')">📋 转任务</button>
+          <button class="insight-btn" onclick="delScript('${s.id}')" style="color:var(--danger)">🗑 删除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 记录选题（标题+灵感）
+function openIdeaModal(accId){
+  modalForm('记录选题灵感',[
+    {key:'title',label:'选题标题',placeholder:'例如：熬夜党必备的3款养生茶',required:true},
+    {key:'idea',label:'灵感/思路',type:'textarea',placeholder:'为什么选这个话题？切入点是什么？想表达什么观点？目标人群是谁？随便写，想到什么写什么…'},
+  ],(data)=>{
+    const item={id:uid(),account:accId,title:data.title,idea:data.idea,script:'',done:false,created:Date.now(),updated:0};
+    DB.insert('scripts',item);
+    toast('选题已记录 ✓');
+    renderContent();
+  });
+}
+
+// 脚本编辑器（全屏弹窗，支持大段文字）
+function openScriptEditor(accId, scriptId){
+  const list = DB.get('scripts');
+  const s = list.find(x=>x.id===scriptId);
+  if(!s) return;
+  const m=document.createElement('div');
+  m.className='modal-overlay';
+  m.innerHTML=`
+    <div class="modal" style="width:680px;max-width:100%;max-height:90vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">选题标题</div>
+          <input class="input" id="se_title" value="${esc(s.title).replace(/"/g,'&quot;')}" style="font-size:16px;font-weight:600">
+        </div>
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0">✕</button>
+      </div>
+      ${s.idea?`<div style="font-size:12px;color:var(--text-muted);background:var(--bg);padding:8px 12px;border-radius:6px;margin-bottom:12px"><b>💭 灵感：</b>${esc(s.idea)}</div>`:''}
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">脚本正文 <span style="color:var(--text-muted)">（支持换行，随时自动保存草稿）</span></div>
+      <textarea id="se_script" class="input" style="flex:1;min-height:300px;resize:vertical;line-height:1.7;font-size:14px" placeholder="在这里写你的口播脚本/视频文案…
+
+开头钩子：
+正文要点：
+1.
+2.
+3.
+结尾引导：">${esc(s.script||'')}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--text-muted)" id="se_status">未保存</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+          <button class="btn btn-primary" id="se_save">💾 保存</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  const ta = m.querySelector('#se_script');
+  const statusEl = m.querySelector('#se_status');
+  
+  // 自动保存草稿（输入停顿1秒后）
+  let saveTimer = null;
+  ta.addEventListener('input',()=>{
+    statusEl.textContent='编辑中…';
+    statusEl.style.color='var(--warning)';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      saveScriptDraft(scriptId, m.querySelector('#se_title').value, ta.value);
+      statusEl.textContent='已自动保存 ✓';
+      statusEl.style.color='var(--success)';
+    }, 1000);
+  });
+  
+  m.querySelector('#se_save').onclick=()=>{
+    saveScriptDraft(scriptId, m.querySelector('#se_title').value, ta.value);
+    toast('脚本已保存 ✓');
+    m.remove();
+    renderContent();
+  };
+  m.addEventListener('click',e=>{if(e.target===m){saveScriptDraft(scriptId,m.querySelector('#se_title').value,ta.value);m.remove();renderContent();}});
+}
+
+function saveScriptDraft(scriptId, title, script){
+  const list = DB.get('scripts');
+  const s = list.find(x=>x.id===scriptId);
+  if(s){
+    s.title = title;
+    s.script = script;
+    s.updated = Date.now();
+    DB.update('scripts', scriptId, {title:title, script:script, updated:s.updated});
+  }
+}
+
+function toggleScriptDone(id){
+  const list = DB.get('scripts');
+  const s = list.find(x=>x.id===id);
+  if(s){s.done=!s.done;s.updated=Date.now();DB.update('scripts',id,{done:s.done,updated:s.updated});toast(s.done?'已标记完成 ✓':'已取消完成');renderContent();}
+}
+
+function scriptToTask(accId, id){
+  const s = DB.get('scripts').find(x=>x.id===id);
+  if(!s) return;
+  const item={id:uid(),account:accId,title:'【脚本】'+s.title,dueDate:new Date().toISOString().slice(0,10),priority:'mid',tags:'脚本',done:false,created:Date.now()};
+  DB.insert('tasks',item);
+  toast('已转为任务 ✓');
+}
+
+function delScript(id){
+  if(!confirm('确认删除这个选题和脚本？删除后不可恢复。'))return;
+  DB.remove('scripts',id);
+  toast('已删除');
+  renderContent();
+}
+
+// ============ 任务操作 ============
+function renderTaskItems(tasks, accId){
+  const filter = window['_accFilter_'+accId]||'all';
+  let list = tasks;
+  if(filter==='todo') list = tasks.filter(t=>!t.done);
+  if(filter==='done') list = tasks.filter(t=>t.done);
+  if(!list.length) return '<div class="empty"><div class="emoji">📋</div>暂无任务</div>';
+  return list.map(t=>`
+    <div class="task-item ${t.done?'done':''}">
+      <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
+      <div class="task-content">
+        <div class="task-title">${esc(t.title)}</div>
+        <div class="task-meta">
+          ${t.dueDate?`📅 ${t.dueDate}`:''}
+          ${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}
+          ${t.tags?` · <span class="task-tag">${esc(t.tags)}</span>`:''}
+        </div>
+      </div>
+      <span class="task-del" onclick="delTask('${t.id}')" title="删除">✕</span>
+    </div>
+  `).join('');
+}
+
+function setAccFilter(accId, f){
+  window['_accFilter_'+accId]=f;
+  const tasks = DB.get('tasks').filter(t=>t.account===accId);
+  document.getElementById('taskList').innerHTML = renderTaskItems(tasks, accId);
+}
+
+function openTaskModal(accId){
+  modalForm('添加任务',[
+    {key:'title',label:'任务标题',placeholder:'例如：拍摄养生茶测评视频',required:true},
+    {key:'dueDate',label:'截止日期',type:'date'},
+    {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:'mid'},
+    {key:'tags',label:'标签',placeholder:'选题/拍摄/剪辑/发布...'},
+  ],(data)=>{
+    const item = {id:uid(),account:accId,...data,done:false,created:Date.now()};
+    DB.insert('tasks', item);
+    toast('任务已添加');
+    renderContent();renderSidebar();renderBottomNav();
+  });
+}
+
+function toggleTask(id){
+  const tasks = DB.get('tasks');
+  const t = tasks.find(x=>x.id===id);
+  if(t){t.done=!t.done;DB.update('tasks',id,{done:t.done});renderContent();renderSidebar();renderBottomNav();}
+}
+function delTask(id){
+  if(!confirm('确认删除此任务？'))return;
+  DB.remove('tasks',id);
+  renderContent();renderSidebar();renderBottomNav();
+}
+
+// ============ 资金管理 ============
+function renderFinance(){
+  const assets = DB.get('assets');
+  const debts = DB.get('debts');
+  const records = DB.get('records');
+  const totalAsset = assets.reduce((s,a)=>s+(+a.amount||0),0);
+  const totalDebt = debts.reduce((s,d)=>s+(+d.amount||0),0);
+  const netWorth = totalAsset - totalDebt;
+  const todayISO = new Date().toISOString().slice(0,7);
+  const monthRecords = records.filter(r=>r.date && r.date.slice(0,7)===todayISO);
+  const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+(+r.amount||0),0);
+  const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+(+r.amount||0),0);
+
+  document.getElementById('pageActions').innerHTML = `
+    <button class="btn btn-primary btn-sm" onclick="openAssetModal()">+ 资产</button>
+    <button class="btn btn-danger btn-sm" onclick="openDebtModal()">+ 负债</button>
+    <button class="btn btn-primary btn-sm" onclick="openRecordModal()">+ 收支</button>
+  `;
+
+  document.getElementById('content').innerHTML = `
+    <div class="finance-summary">
+      <div class="finance-card assets"><div class="label">💰 总资产</div><div class="value">¥${fmt(totalAsset)}</div><div style="font-size:11px;opacity:.8;margin-top:4px">${assets.length} 项</div></div>
+      <div class="finance-card debts"><div class="label">📉 总负债</div><div class="value">¥${fmt(totalDebt)}</div><div style="font-size:11px;opacity:.8;margin-top:4px">${debts.length} 项</div></div>
+      <div class="finance-card net"><div class="label">💎 净资产</div><div class="value">¥${fmt(netWorth)}</div><div style="font-size:11px;opacity:.8;margin-top:4px">${netWorth>=0?'资产健康':'资不抵债'}</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card positive"><div class="label">本月收入</div><div class="value">¥${fmt(income)}</div><div class="icon">📈</div></div>
+      <div class="stat-card negative"><div class="label">本月支出</div><div class="value">¥${fmt(expense)}</div><div class="icon">📉</div></div>
+      <div class="stat-card ${income-expense>=0?'positive':'negative'}"><div class="label">本月结余</div><div class="value">¥${fmt(income-expense)}</div><div class="icon">💾</div></div>
+    </div>
+    <div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--primary)"></span>资产明细</span><button class="btn btn-ghost btn-sm" onclick="openAssetModal()">+ 添加</button></div>${assets.length ? renderFinanceTable(assets,'asset') : '<div class="empty"><div class="emoji">💰</div>暂无资产记录</div>'}</div>
+    <div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--danger)"></span>负债明细</span><button class="btn btn-ghost btn-sm" onclick="openDebtModal()">+ 添加</button></div>${debts.length ? renderFinanceTable(debts,'debt') : '<div class="empty"><div class="emoji">📉</div>暂无负债记录</div>'}</div>
+    <div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--success)"></span>收支记录</span><button class="btn btn-ghost btn-sm" onclick="openRecordModal()">+ 记一笔</button></div>${records.length ? renderFinanceTable(records.sort((a,b)=>(b.date||'').localeCompare(a.date||'')),'record') : '<div class="empty"><div class="emoji">📝</div>暂无收支记录</div>'}</div>
+  `;
+}
+
+function renderFinanceTable(items, type){
+  let tableHTML='', cardHTML='';
+  if(type==='asset'){
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(a=>`<tr><td>${esc(a.name)}</td><td><span class="badge badge-income">${esc(a.type||'其他')}</span></td><td style="font-weight:600;color:var(--success)">+¥${fmt(a.amount)}</td><td style="color:var(--text-muted)">${esc(a.note||'-')}</td><td><span class="task-del" onclick="delItem('assets','${a.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(a=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(a.name)}</div><div class="rec-amount" style="color:var(--success)">+¥${fmt(a.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-income">${esc(a.type||'其他')}</span></span></div>${a.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(a.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('assets','${a.id}')">删除</span></span></div></div>`).join('')}</div>`;
+  }
+  if(type==='debt'){
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>名称</th><th>类型</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(d=>`<tr><td>${esc(d.name)}</td><td><span class="badge badge-debt">${esc(d.type||'其他')}</span></td><td style="font-weight:600;color:var(--danger)">-¥${fmt(d.amount)}</td><td style="color:var(--text-muted)">${esc(d.note||'-')}</td><td><span class="task-del" onclick="delItem('debts','${d.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(d=>`<div class="rec-card"><div class="rec-main"><div class="rec-name">${esc(d.name)}</div><div class="rec-amount" style="color:var(--danger)">-¥${fmt(d.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge badge-debt">${esc(d.type||'其他')}</span></span></div>${d.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(d.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('debts','${d.id}')">删除</span></span></div></div>`).join('')}</div>`;
+  }
+  if(type==='record'){
+    tableHTML=`<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>金额</th><th>备注</th><th></th></tr></thead><tbody>${items.map(r=>`<tr><td>${r.date||'-'}</td><td><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></td><td>${esc(r.category||'-')}</td><td style="font-weight:600;color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</td><td style="color:var(--text-muted)">${esc(r.note||'-')}</td><td><span class="task-del" onclick="delItem('records','${r.id}')">✕</span></td></tr>`).join('')}</tbody></table></div>`;
+    cardHTML=`<div class="card-list">${items.map(r=>`<div class="rec-card"><div class="rec-main"><div><div class="rec-name">${esc(r.category||'未分类')}</div><div class="rec-label">${r.date||'-'}</div></div><div class="rec-amount" style="color:${r.type==='income'?'var(--success)':'var(--danger)'}">${r.type==='income'?'+':'-'}¥${fmt(r.amount)}</div></div><div class="rec-row"><span class="rec-label">类型</span><span class="rec-val"><span class="badge ${r.type==='income'?'badge-income':'badge-expense'}">${r.type==='income'?'收入':'支出'}</span></span></div>${r.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(r.note)}</span></div>`:''}<div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-del" onclick="delItem('records','${r.id}')">删除</span></span></div></div>`).join('')}</div>`;
+  }
+  return tableHTML+cardHTML;
+}
+
+function openAssetModal(){
+  modalForm('添加资产',[
+    {key:'name',label:'资产名称',placeholder:'例如：余额宝',required:true},
+    {key:'type',label:'类型',type:'select',options:['现金','存款','理财','基金','股票','房产','车辆','其他'],value:'存款'},
+    {key:'amount',label:'金额（元）',type:'number',required:true},
+    {key:'note',label:'备注',placeholder:'可选'},
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('assets',item);toast('资产已添加');renderContent();});
+}
+function openDebtModal(){
+  modalForm('添加负债',[
+    {key:'name',label:'负债名称',placeholder:'例如：花呗',required:true},
+    {key:'type',label:'类型',type:'select',options:['信用卡','网贷','亲友借款','房贷','车贷','花呗','借呗','其他'],value:'信用卡'},
+    {key:'amount',label:'金额（元）',type:'number',required:true},
+    {key:'note',label:'备注',placeholder:'可选'},
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('debts',item);toast('负债已添加');renderContent();});
+}
+function openRecordModal(){
+  modalForm('记一笔收支',[
+    {key:'type',label:'类型',type:'select',options:[['income','收入'],['expense','支出']],value:'expense'},
+    {key:'date',label:'日期',type:'date',value:new Date().toISOString().slice(0,10),required:true},
+    {key:'amount',label:'金额（元）',type:'number',required:true},
+    {key:'category',label:'分类',type:'select',options:['工资','奖金','带货收入','广告费','其他收入','餐饮','交通','购物','房租','水电','娱乐','教育','医疗','其他支出'],value:'其他支出'},
+    {key:'note',label:'备注',placeholder:'可选'},
+  ],(data)=>{const item={id:uid(),...data,amount:+data.amount};DB.insert('records',item);toast('记录已添加');renderContent();});
+}
+function delItem(key,id){if(!confirm('确认删除？'))return;DB.remove(key,id);toast('已删除');renderContent();renderSidebar();renderBottomNav();}
+
+// ============ 日常待办 ============
+function renderTodos(){
+  const todos = DB.get('todos');
+  const filter = currentTodoFilter;
+  document.getElementById('pageActions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTodoModal()">+ 待办</button>`;
+  const today = new Date().toISOString().slice(0,10);
+  const overdue=[],todayItems=[],upcoming=[],done=[],noDate=[];
+  todos.forEach(t=>{if(t.done){done.push(t);return;}if(!t.date){noDate.push(t);return;}if(t.date<today)overdue.push(t);else if(t.date===today)todayItems.push(t);else upcoming.push(t);});
+  let groups=[];
+  if(filter!=='done'){if(overdue.length)groups.push({title:'⚠️ 已逾期',items:overdue});if(todayItems.length)groups.push({title:'📅 今日',items:todayItems});if(upcoming.length)groups.push({title:'📆 即将到来',items:upcoming});if(noDate.length)groups.push({title:'📌 未排期',items:noDate});}
+  if(filter==='done'||done.length)groups.push({title:'✅ 已完成',items:done});
+  
+  document.getElementById('content').innerHTML = `
+    <div class="tabs">
+      <div class="tab ${filter==='all'?'active':''}" onclick="setTodoFilter('all')">全部 (${todos.length})</div>
+      <div class="tab ${filter==='todo'?'active':''}" onclick="setTodoFilter('todo')">待办 (${todos.length-done.length})</div>
+      <div class="tab ${filter==='done'?'active':''}" onclick="setTodoFilter('done')">已完成 (${done.length})</div>
+    </div>
+    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-del" onclick="delTodo('${t.id}')">✕</span></div>`).join('')}</div></div>`).join('')}
+    ${todos.length===0?'<div class="card"><div class="empty"><div class="emoji">✅</div>暂无待办，点击右上角添加</div></div>':''}
+  `;
+}
+function setTodoFilter(f){currentTodoFilter=f;renderTodos();}
+function openTodoModal(){
+  modalForm('添加待办',[
+    {key:'title',label:'待办内容',placeholder:'例如：剪辑口播视频',required:true},
+    {key:'date',label:'计划日期',type:'date',value:new Date().toISOString().slice(0,10)},
+    {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:'mid'},
+    {key:'category',label:'分类',type:'select',options:['工作','生活','学习','健康','财务','其他'],value:'工作'},
+  ],(data)=>{const item={id:uid(),...data,done:false,created:Date.now()};DB.insert('todos',item);toast('待办已添加');renderContent();renderSidebar();renderBottomNav();});
+}
+function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done});if(currentPage==='todos')renderTodos();else renderContent();renderSidebar();renderBottomNav();}}
+function delTodo(id){if(!confirm('确认删除此待办？'))return;DB.remove('todos',id);renderContent();renderSidebar();renderBottomNav();}
+
+// ============ 通用模态 ============
+function modalForm(title, fields, onSave){
+  const m=document.createElement('div');
+  m.className='modal-overlay';
+  m.innerHTML=`<div class="modal"><h3>${title}</h3>${fields.map(f=>`<div class="form-row"><div style="flex:1;min-width:0"><label class="form-label">${f.label}${f.required?' <span style="color:var(--danger)">*</span>':''}</label>${f.type==='select'?`<select class="select" id="f_${f.key}">${f.options.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return`<option value="${v}" ${f.value===v?'selected':''}>${l}</option>`}).join('')}</select>`:f.type==='date'?`<input class="input" type="date" id="f_${f.key}" value="${f.value||''}">`:f.type==='number'?`<input class="input" type="number" id="f_${f.key}" value="${f.value||''}" placeholder="${f.placeholder||''}" min="0" step="0.01">`:f.type==='textarea'?`<textarea class="input" id="f_${f.key}" placeholder="${f.placeholder||''}" style="min-height:120px;resize:vertical;line-height:1.6">${esc(f.value||'')}</textarea>`:`<input class="input" type="text" id="f_${f.key}" value="${f.value||''}" placeholder="${f.placeholder||''}">`}</div></div>`).join('')}<div class="modal-actions"><button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" id="mSave">保存</button></div></div>`;
+  document.body.appendChild(m);
+  const fi=m.querySelector('input,select');if(fi)setTimeout(()=>fi.focus(),100);
+  m.querySelector('#mSave').onclick=()=>{const data={};for(const f of fields){const el=m.querySelector('#f_'+f.key);data[f.key]=el.value.trim();if(f.required&&!data[f.key])return toast('请填写'+f.label);}m.remove();onSave(data);};
+  m.addEventListener('keydown',e=>{if(e.key==='Escape')m.remove();if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'&&e.target.tagName!=='SELECT'){e.preventDefault();m.querySelector('#mSave').click();}});
+  m.addEventListener('click',e=>{if(e.target===m)m.remove()});
+}
+
+// ============ 工具函数 ============
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmt(n){return(+n||0).toLocaleString('zh-CN',{maximumFractionDigits:2})}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000)}
+
+// ============ 初始化示例数据 ============
+async function seed(){
+  // 检查云端是否已有数据
+  const { data: existing } = await supa.from('tasks').select('id').limit(1);
+  if(existing && existing.length>0) return; // 已有数据，不重复初始化
+
+  const today=new Date().toISOString().slice(0,10);
+  const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const nextWeek=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  
+  const tasks=[
+    {id:uid(),account:'acc1',title:'养生茶测评选题策划',dueDate:today,priority:'high',tags:'选题',done:false,created:Date.now()},
+    {id:uid(),account:'acc1',title:'拍摄养生好物种草视频',dueDate:tomorrow,priority:'mid',tags:'拍摄',done:false,created:Date.now()},
+    {id:uid(),account:'acc2',title:'早起打卡内容发布',dueDate:today,priority:'mid',tags:'发布',done:true,created:Date.now()},
+    {id:uid(),account:'acc3',title:'婚姻保鲜口播脚本撰写',dueDate:today,priority:'high',tags:'脚本',done:false,created:Date.now()},
+    {id:uid(),account:'acc3',title:'口播视频录制',dueDate:tomorrow,priority:'mid',tags:'拍摄',done:false,created:Date.now()},
+  ];
+  const assets=[
+    {id:uid(),name:'支付宝余额',type:'存款',amount:12000,note:''},
+    {id:uid(),name:'微信零钱',type:'现金',amount:3500,note:''},
+    {id:uid(),name:'基金理财',type:'基金',amount:28000,note:'稳健型'},
+  ];
+  const debts=[
+    {id:uid(),name:'花呗',type:'花呗',amount:2800,note:'本月待还'},
+    {id:uid(),name:'信用卡',type:'信用卡',amount:8500,note:'招行'},
+  ];
+  const records=[
+    {id:uid(),type:'income',date:today,amount:3500,category:'带货收入',note:'养生茶佣金'},
+    {id:uid(),type:'expense',date:today,amount:280,category:'餐饮',note:'午餐'},
+    {id:uid(),type:'expense',date:today,amount:120,category:'交通',note:'打车'},
+    {id:uid(),type:'income',date:tomorrow,amount:800,category:'广告费',note:'情感号广告'},
+  ];
+  const todos=[
+    {id:uid(),title:'剪辑熬夜养生带货视频',date:today,priority:'high',category:'工作',done:false,created:Date.now()},
+    {id:uid(),title:'回复粉丝评论互动',date:today,priority:'mid',category:'工作',done:false,created:Date.now()},
+    {id:uid(),title:'更新要早睡的尤朋友圈',date:today,priority:'low',category:'工作',done:true,created:Date.now()},
+    {id:uid(),title:'阅读情感类书籍1小时',date:tomorrow,priority:'mid',category:'学习',done:false,created:Date.now()},
+    {id:uid(),title:'健身30分钟',date:today,priority:'mid',category:'健康',done:false,created:Date.now()},
+    {id:uid(),title:'整理本月带货数据报表',date:nextWeek,priority:'low',category:'财务',done:false,created:Date.now()},
+  ];
+  const scripts=[
+    {id:uid(),account:'acc1',title:'熬夜党必备的3款养生茶测评',idea:'切入点：很多打工人熬夜后第一反应是喝咖啡续命，但其实养生茶更养肝。对比3款市面上热门的养生茶，从口感、功效、价格三个维度测评。目标人群：25-35岁熬夜上班族。',script:'',done:false,created:Date.now()-3600000,updated:0},
+    {id:uid(),account:'acc1',title:'熬夜后如何快速恢复元气',idea:'5个动作+1杯茶的组合方案，强调实操性。',script:'开头钩子：熬夜不可怕，可怕的是第二天像个行尸走肉。\n\n正文要点：\n1. 起床先喝一杯温水+蜂蜜\n2. 做3分钟拉伸唤醒身体\n3. 护肝茶配方分享\n4. 午间补觉15分钟的正确姿势\n5. 晚上泡脚加点料\n\n结尾：关注我，下期分享熬夜党的早餐搭配。',done:false,created:Date.now()-7200000,updated:Date.now()-3600000},
+    {id:uid(),account:'acc2',title:'5点早起100天后我发生了什么变化',idea:'人设类内容，讲个人真实经历和变化，强化自律人设。',script:'',done:false,created:Date.now()-1800000,updated:0},
+    {id:uid(),account:'acc3',title:'结婚5年我悟出的3个婚姻真相',idea:'口播类，用故事引入，讲3个观点：1.爱情会变淡但责任不会 2.吵架不可怕不会吵架才可怕 3.婚姻是合伙过日子不是谈恋爱。',script:'',done:false,created:Date.now()-900000,updated:0},
+  ];
+  
+  // 写入云端
+  for(const t of tasks) await DB.insert('tasks',t);
+  for(const a of assets) await DB.insert('assets',a);
+  for(const d of debts) await DB.insert('debts',d);
+  for(const r of records) await DB.insert('records',r);
+  for(const t of todos) await DB.insert('todos',t);
+  for(const s of scripts) await DB.insert('scripts',s);
+}
+
+// ============ 启动 ============
+async function init(){
+  // 显示加载中
+  document.getElementById('content').innerHTML = '<div class="empty"><div class="emoji">⏳</div>正在从云端加载数据...</div>';
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
+  
+  // 先初始化示例数据（如果云端为空）
+  await seed();
+  
+  // 从云端拉取所有数据到缓存
+  await Promise.all([
+    DB.sync('tasks'),
+    DB.sync('todos'),
+    DB.sync('assets'),
+    DB.sync('debts'),
+    DB.sync('records'),
+    DB.sync('scripts'),
+  ]);
+  
+  renderSidebar();
+  renderBottomNav();
+  renderContent();
+  
+  // 每30秒自动同步一次（保持多端数据新鲜）
+  setInterval(async()=>{
+    await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+    renderSidebar();
+    renderBottomNav();
+    if(['overview','todos','finance'].includes(currentPage)) renderContent();
+  }, 30000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+else init();
+</script>
+</body>
+</html>
