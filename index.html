@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v4.0</span>
+        <span style="font-size:11px;color:var(--text-muted)">v4.2</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -603,12 +603,9 @@ const PAGES = {
 };
 
 const BN_ITEMS = [
-  {page:'overview',icon:'🏠',label:'总览'},
-  {page:'acc1',icon:'🌙',label:'小尤'},
-  {page:'acc2',icon:'☀️',label:'早睡'},
-  {page:'acc3',icon:'💍',label:'不吃姜'},
+  {page:'overview',icon:'💼',label:'工作'},
   {page:'finance',icon:'💰',label:'资金'},
-  {page:'lifetodo',icon:'✅',label:'生活'},
+  {page:'lifetodo',icon:'🌿',label:'生活'},
 ];
 
 let currentPage = 'overview';
@@ -690,8 +687,111 @@ function renderContent(){
   if(currentPage.startsWith('acc')) return renderAccount(currentPage);
   if(currentPage==='finance') return renderFinance();
   if(currentPage==='worktodo') return renderTodos('work');
-  if(currentPage==='lifetodo') return renderTodos('life');
+  if(currentPage==='lifetodo') return renderLifePage();
   if(currentPage==='sleep') return renderSleep();
+}
+
+// 生活管理页面（带标签切换）
+let lifeTab = 'todo';
+function renderLifePage(){
+  document.getElementById('pageActions').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div class="tabs">
+      <div class="tab ${lifeTab==='todo'?'active':''}" onclick="setLifeTab('todo')">✅ 生活待办</div>
+      <div class="tab ${lifeTab==='sleep'?'active':''}" onclick="setLifeTab('sleep')">😴 作息打卡</div>
+    </div>
+    <div id="lifeContent"></div>
+  `;
+  if(lifeTab==='todo') renderTodosInto('lifeContent','life');
+  else renderSleepInto('lifeContent');
+}
+function setLifeTab(tab){ lifeTab=tab; renderLifePage(); }
+
+function renderTodosInto(containerId, type){
+  const target = document.getElementById(containerId);
+  if(!target){ renderTodos(type); return; }
+  // 临时把content指向子容器
+  const origContent = document.getElementById('content');
+  const origActions = document.getElementById('pageActions');
+  // 渲染到临时容器
+  const allTodos = DB.get('todos');
+  const todos = type==='life' ? allTodos.filter(isLifeTodo) : allTodos.filter(t=>!isLifeTodo(t));
+  const filter = currentTodoFilter;
+  const cats = type==='life' ? LIFE_CATS : WORK_CATS;
+  origActions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTodoModal('${type}')">+ 添加</button>`;
+  const today = new Date().toISOString().slice(0,10);
+  const overdue=[],todayItems=[],upcoming=[],done=[],noDate=[];
+  todos.forEach(t=>{if(t.done){done.push(t);return;}if(!t.date){noDate.push(t);return;}if(t.date<today)overdue.push(t);else if(t.date===today)todayItems.push(t);else upcoming.push(t);});
+  let groups=[];
+  if(filter!=='done'){if(overdue.length)groups.push({title:'⚠️ 已逾期',items:overdue});if(todayItems.length)groups.push({title:'📅 今日',items:todayItems});if(upcoming.length)groups.push({title:'📆 即将到来',items:upcoming});if(noDate.length)groups.push({title:'📌 未排期',items:noDate});}
+  if(filter==='done'||done.length)groups.push({title:'✅ 已完成',items:done});
+  target.innerHTML = `
+    <div class="tabs" style="margin-top:8px">
+      <div class="tab ${filter==='all'?'active':''}" onclick="setTodoFilter('all')">全部 (${todos.length})</div>
+      <div class="tab ${filter==='todo'?'active':''}" onclick="setTodoFilter('todo')">待办 (${todos.length-done.length})</div>
+      <div class="tab ${filter==='done'?'active':''}" onclick="setTodoFilter('done')">已完成 (${done.length})</div>
+    </div>
+    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content" onclick="editTodo('${t.id}','${type}')" style="cursor:pointer"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-edit" onclick="editTodo('${t.id}','${type}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span><span class="task-del" onclick="delTodo('${t.id}')" style="cursor:pointer;font-size:13px">删除</span></div>`).join('')}</div></div>`).join('')}
+    ${todos.length===0?'<div class="card"><div class="empty"><div class="emoji">✅</div>暂无生活待办，点击右上角添加</div></div>':''}
+  `;
+}
+
+function renderSleepInto(containerId){
+  const target = document.getElementById(containerId);
+  if(!target){ renderSleep(); return; }
+  const logs = DB.get('todos').filter(t=>t.category==='作息打卡');
+  const today = new Date().toISOString().slice(0,10);
+  const todayWakeLog = logs.find(l=>l.date===today && l.title.startsWith('起床'));
+  const todaySleepLog = logs.find(l=>l.date===today && l.title.startsWith('睡觉'));
+  const wakeTime = todayWakeLog ? todayWakeLog.title.replace('起床 ','') : '';
+  const sleepTime = todaySleepLog ? todaySleepLog.title.replace('睡觉 ','') : '';
+  const last7 = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(Date.now()-i*86400000).toISOString().slice(0,10);
+    const wLog = logs.find(l=>l.date===d && l.title.startsWith('起床'));
+    const sLog = logs.find(l=>l.date===d && l.title.startsWith('睡觉'));
+    last7.push({date:d, wake:wLog?wLog.title.replace('起床 ',''):'', sleep:sLog?sLog.title.replace('睡觉 ',''):''});
+  }
+  const wakeTimes = logs.filter(l=>l.title.startsWith('起床')).map(l=>l.title.replace('起床 ','')).filter(Boolean);
+  const sleepTimes = logs.filter(l=>l.title.startsWith('睡觉')).map(l=>l.title.replace('睡觉 ','')).filter(Boolean);
+  const totalDays = new Set(logs.map(l=>l.date)).size;
+  
+  target.innerHTML = `
+    <div class="stats-grid" style="margin-top:8px">
+      <div class="stat-card positive">
+        <div class="label">今日起床</div>
+        <div class="value" style="font-size:22px">${wakeTime||'未打卡'}</div>
+        <div class="sub">${wakeTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="icon">🌅</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
+        <div class="label" style="color:rgba(255,255,255,0.8)">今日睡觉</div>
+        <div class="value" style="font-size:22px;color:#fff">${sleepTime||'未打卡'}</div>
+        <div class="sub" style="color:rgba(255,255,255,0.8)">${sleepTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="icon">🌙</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">已打卡天数</div>
+        <div class="value">${totalDays}</div>
+        <div class="sub">累计记录</div>
+        <div class="icon">📊</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="left"><span class="dot" style="background:var(--primary)"></span>今日打卡</span></div>
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-primary" style="flex:1;font-size:16px;padding:16px" onclick="sleepCheckin('wake')">${wakeTime?'🔄 更新起床':'🌅 起床打卡'}</button>
+        <button class="btn" style="flex:1;font-size:16px;padding:16px;background:#6366f1;color:#fff" onclick="sleepCheckin('sleep')">${sleepTime?'🔄 更新睡觉':'🌙 睡觉打卡'}</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="left"><span class="dot" style="background:var(--warning)"></span>最近7天作息</span></div>
+      <div class="card-list">
+        ${last7.map(d=>`<div class="rec-card"><div class="rec-main"><div><div class="rec-name">${d.date===today?'今天':d.date.slice(5)}</div><div class="rec-label">${['周日','周一','周二','周三','周四','周五','周六'][new Date(d.date).getDay()]}</div></div><div style="text-align:right;font-size:13px">${d.wake?`<span style="color:var(--success)">🌅 ${d.wake}</span>`:'<span style="color:var(--text-muted)">—</span>'}${d.sleep?`<br><span style="color:#8b5cf6">🌙 ${d.sleep}</span>`:''}</div></div></div>`).join('')}
+      </div>
+    </div>
+    ${wakeTimes.length>0||sleepTimes.length>0?`<div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--success)"></span>作息统计</span></div><div class="stats-grid" style="grid-template-columns:repeat(2,1fr)"><div class="stat-card" style="padding:14px"><div class="label" style="font-size:12px">平均起床</div><div class="value" style="font-size:20px">${avgTime(wakeTimes)}</div></div><div class="stat-card" style="padding:14px"><div class="label" style="font-size:12px">平均睡觉</div><div class="value" style="font-size:20px;color:#8b5cf6">${avgTime(sleepTimes)}</div></div></div></div>`:''}
+  `;
 }
 
 // ============ 总览页 ============
