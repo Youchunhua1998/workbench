@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v4.3</span>
+        <span style="font-size:11px;color:var(--text-muted)">v4.4</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -1032,7 +1032,19 @@ function scriptToTask(accId, id){
   const s = DB.get('scripts').find(x=>x.id===id);
   if(!s) return;
   const item={id:uid(),account:accId,title:'【脚本】'+s.title,dueDate:new Date().toISOString().slice(0,10),priority:'mid',tags:'脚本',done:false,created:Date.now()};
-  DB.insert('tasks',item).then(ok=>{ if(ok){ toast('已转为任务 ✓'); renderContent(); } });
+  DB.insert('tasks',item).then(ok=>{
+    if(!ok) return;
+    // 转任务成功后，从选题列表移除该选题
+    DB.remove('scripts',id).then(()=>{
+      toast('已转为任务，已跳转到任务清单 ✓');
+      renderContent();
+      // 滚动到任务清单
+      setTimeout(()=>{
+        const tl = document.getElementById('taskList');
+        if(tl){ tl.scrollIntoView({behavior:'smooth',block:'center'}); }
+      },100);
+    });
+  });
 }
 
 function delScript(id){
