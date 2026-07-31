@@ -307,13 +307,13 @@ const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 // 表名映射
 const TABLE_MAP = {
   tasks: 'tasks', todos: 'todos', assets: 'assets',
-  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats', sleeps: 'sleep_logs'
+  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats'
 };
 
 // 各表排序字段（有的表没有created字段，用id排序）
 const SORT_MAP = {
   tasks: 'created', todos: 'created', assets: 'id',
-  debts: 'id', records: 'date', scripts: 'created', stats: 'created', sleeps: 'date'
+  debts: 'id', records: 'date', scripts: 'created', stats: 'created'
 };
 
 // 字段名转换（驼峰 ↔ 下划线）
@@ -1223,43 +1223,51 @@ function editTodo(id,type){
   ],(data)=>{DB.update('todos',id,data).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
 }
 
-// ============ 作息打卡 ============
+// ============ 作息打卡（复用todos表存储） ============
 function renderSleep(){
   document.getElementById('pageActions').innerHTML = '';
-  const logs = DB.get('sleeps');
+  // 从todos里筛选出category为'作息打卡'的记录
+  const logs = DB.get('todos').filter(t=>t.category==='作息打卡');
   const today = new Date().toISOString().slice(0,10);
-  const todayLog = logs.find(l=>l.date===today) || {};
+  const todayLog = logs.find(l=>l.date===today);
+  const todayWake = todayLog && todayLog.title.includes('起床') ? todayLog.title.split(' ')[1] : '';
+  const todaySleep = todayLog && todayLog.title.includes('睡觉') ? todayLog.title.split(' ')[1] : '';
+  // 也可能是两条记录
+  const todayWakeLog = logs.find(l=>l.date===today && l.title.startsWith('起床'));
+  const todaySleepLog = logs.find(l=>l.date===today && l.title.startsWith('睡觉'));
+  const wakeTime = todayWakeLog ? todayWakeLog.title.replace('起床 ','') : (todayWake||'');
+  const sleepTime = todaySleepLog ? todaySleepLog.title.replace('睡觉 ','') : (todaySleep||'');
   
-  // 最近7天打卡记录
+  // 最近7天
   const last7 = [];
   for(let i=0;i<7;i++){
     const d = new Date(Date.now()-i*86400000).toISOString().slice(0,10);
-    const log = logs.find(l=>l.date===d);
-    last7.push({date:d, log});
+    const wLog = logs.find(l=>l.date===d && l.title.startsWith('起床'));
+    const sLog = logs.find(l=>l.date===d && l.title.startsWith('睡觉'));
+    last7.push({date:d, wake:wLog?wLog.title.replace('起床 ',''):'', sleep:sLog?sLog.title.replace('睡觉 ',''):''});
   }
   
-  // 统计
-  const validLogs = logs.filter(l=>l.wakeTime || l.sleepTime);
-  const wakeTimes = validLogs.filter(l=>l.wakeTime).map(l=>l.wakeTime);
-  const sleepTimes = validLogs.filter(l=>l.sleepTime).map(l=>l.sleepTime);
+  const wakeTimes = logs.filter(l=>l.title.startsWith('起床')).map(l=>l.title.replace('起床 ','')).filter(Boolean);
+  const sleepTimes = logs.filter(l=>l.title.startsWith('睡觉')).map(l=>l.title.replace('睡觉 ','')).filter(Boolean);
+  const totalDays = new Set(logs.map(l=>l.date)).size;
   
   document.getElementById('content').innerHTML = `
     <div class="stats-grid">
       <div class="stat-card positive">
         <div class="label">今日起床</div>
-        <div class="value" style="font-size:22px">${todayLog.wakeTime||'未打卡'}</div>
-        <div class="sub">${todayLog.wakeTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="value" style="font-size:22px">${wakeTime||'未打卡'}</div>
+        <div class="sub">${wakeTime?'✅ 已打卡':'点击下方打卡'}</div>
         <div class="icon">🌅</div>
       </div>
       <div class="stat-card" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
         <div class="label" style="color:rgba(255,255,255,0.8)">今日睡觉</div>
-        <div class="value" style="font-size:22px;color:#fff">${todayLog.sleepTime||'未打卡'}</div>
-        <div class="sub" style="color:rgba(255,255,255,0.8)">${todayLog.sleepTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="value" style="font-size:22px;color:#fff">${sleepTime||'未打卡'}</div>
+        <div class="sub" style="color:rgba(255,255,255,0.8)">${sleepTime?'✅ 已打卡':'点击下方打卡'}</div>
         <div class="icon">🌙</div>
       </div>
       <div class="stat-card">
         <div class="label">已打卡天数</div>
-        <div class="value">${validLogs.length}</div>
+        <div class="value">${totalDays}</div>
         <div class="sub">累计记录</div>
         <div class="icon">📊</div>
       </div>
@@ -1269,15 +1277,14 @@ function renderSleep(){
       <div class="card-title"><span class="left"><span class="dot" style="background:var(--primary)"></span>今日打卡</span></div>
       <div style="display:flex;gap:12px">
         <button class="btn btn-primary" style="flex:1;font-size:16px;padding:16px" onclick="sleepCheckin('wake')">
-          ${todayLog.wakeTime?'🔄 更新起床':'🌅 起床打卡'}
+          ${wakeTime?'🔄 更新起床':'🌅 起床打卡'}
         </button>
         <button class="btn" style="flex:1;font-size:16px;padding:16px;background:#6366f1;color:#fff" onclick="sleepCheckin('sleep')">
-          ${todayLog.sleepTime?'🔄 更新睡觉':'🌙 睡觉打卡'}
+          ${sleepTime?'🔄 更新睡觉':'🌙 睡觉打卡'}
         </button>
       </div>
-      ${todayLog.wakeTime||todayLog.sleepTime?`<div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text-muted)">
-        今日起床：${todayLog.wakeTime||'—'} ｜ 今日睡觉：${todayLog.sleepTime||'—'}
-        ${todayLog.wakeTime&&todayLog.sleepTime?'':' ｜ 等待第二次打卡'}
+      ${wakeTime||sleepTime?`<div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text-muted)">
+        今日起床：${wakeTime||'—'} ｜ 今日睡觉：${sleepTime||'—'}
       </div>`:''}
     </div>
 
@@ -1292,8 +1299,8 @@ function renderSleep(){
                 <div class="rec-label">${['周日','周一','周二','周三','周四','周五','周六'][new Date(d.date).getDay()]}</div>
               </div>
               <div style="text-align:right;font-size:13px">
-                ${d.log?(d.log.wakeTime?`<span style="color:var(--success)">🌅 ${d.log.wakeTime}</span>`:'<span style="color:var(--text-muted)">未起床</span>'):'<span style="color:var(--text-muted)">无记录</span>'}
-                ${d.log&&d.log.sleepTime?`<br><span style="color:#8b5cf6">🌙 ${d.log.sleepTime}</span>`:''}
+                ${d.wake?`<span style="color:var(--success)">🌅 ${d.wake}</span>`:'<span style="color:var(--text-muted)">—</span>'}
+                ${d.sleep?`<br><span style="color:#8b5cf6">🌙 ${d.sleep}</span>`:''}
               </div>
             </div>
           </div>
@@ -1301,7 +1308,7 @@ function renderSleep(){
       </div>
     </div>
 
-    ${validLogs.length>0?`<div class="card">
+    ${wakeTimes.length>0||sleepTimes.length>0?`<div class="card">
       <div class="card-title"><span class="left"><span class="dot" style="background:var(--success)"></span>作息统计</span></div>
       <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="stat-card" style="padding:14px"><div class="label" style="font-size:12px">平均起床</div><div class="value" style="font-size:20px">${avgTime(wakeTimes)}</div></div>
@@ -1314,8 +1321,8 @@ function renderSleep(){
 function avgTime(times){
   if(!times.length) return '—';
   const mins = times.map(t=>{
-    const [h,m] = t.split(':').map(Number);
-    return h*60+m;
+    const p = t.split(':');
+    return parseInt(p[0])*60+parseInt(p[1]);
   });
   const avg = Math.round(mins.reduce((a,b)=>a+b,0)/mins.length);
   const h = Math.floor(avg/60), m = avg%60;
@@ -1326,23 +1333,25 @@ function sleepCheckin(type){
   const now = new Date();
   const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const today = new Date().toISOString().slice(0,10);
-  const logs = DB.get('sleeps');
-  const existing = logs.find(l=>l.date===today);
+  const logs = DB.get('todos').filter(t=>t.category==='作息打卡');
+  const prefix = type==='wake'?'起床':'睡觉';
+  const existing = logs.find(l=>l.date===today && l.title.startsWith(prefix));
   
   if(existing){
-    const patch = type==='wake' ? {wakeTime:time} : {sleepTime:time};
-    DB.update('sleeps', existing.id, patch).then(ok=>{
+    DB.update('todos', existing.id, {title: prefix+' '+time}).then(ok=>{
       if(ok){ toast(type==='wake'?'起床打卡成功 ✓':'睡觉打卡成功 ✓'); renderContent(); }
     });
   } else {
     const item = {
       id: uid(),
+      title: prefix+' '+time,
       date: today,
-      wakeTime: type==='wake' ? time : '',
-      sleepTime: type==='sleep' ? time : '',
+      priority: 'low',
+      category: '作息打卡',
+      done: false,
       created: Date.now()
     };
-    DB.insert('sleeps', item).then(ok=>{
+    DB.insert('todos', item).then(ok=>{
       if(ok){ toast(type==='wake'?'起床打卡成功 ✓':'睡觉打卡成功 ✓'); renderContent(); }
     });
   }
@@ -1440,7 +1449,6 @@ async function init(){
     DB.sync('records'),
     DB.sync('scripts'),
     DB.sync('stats'),
-    DB.sync('sleeps'),
   ]);
   
   renderSidebar();
@@ -1469,7 +1477,7 @@ async function init(){
 // 手动强制同步（可用于按钮调用）
 async function forceSync(){
   toast('正在同步...');
-  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats'),DB.sync('sleeps')]);
+  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats')]);
   renderSidebar();
   renderBottomNav();
   renderContent();
