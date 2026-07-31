@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v4.2</span>
+        <span style="font-size:11px;color:var(--text-muted)">v4.3</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -651,11 +651,8 @@ function renderSidebar(){
     <div class="nav-section">
       <div class="nav-section-title">生活管理</div>
       <div class="nav-item ${currentPage==='lifetodo'?'active':''}" onclick="go('lifetodo')">
-        <span class="icon">✅</span><span class="nav-text">生活待办</span>
+        <span class="icon">🌿</span><span class="nav-text">生活管理</span>
         ${lifeTodoCount?`<span class="nav-badge">${lifeTodoCount}</span>`:''}
-      </div>
-      <div class="nav-item ${currentPage==='sleep'?'active':''}" onclick="go('sleep')">
-        <span class="icon">😴</span><span class="nav-text">作息打卡</span>
       </div>
     </div>
   `;
@@ -691,21 +688,16 @@ function renderContent(){
   if(currentPage==='sleep') return renderSleep();
 }
 
-// 生活管理页面（带标签切换）
-let lifeTab = 'todo';
+// 生活管理页面（待办+打卡同页）
 function renderLifePage(){
   document.getElementById('pageActions').innerHTML = '';
   document.getElementById('content').innerHTML = `
-    <div class="tabs">
-      <div class="tab ${lifeTab==='todo'?'active':''}" onclick="setLifeTab('todo')">✅ 生活待办</div>
-      <div class="tab ${lifeTab==='sleep'?'active':''}" onclick="setLifeTab('sleep')">😴 作息打卡</div>
-    </div>
     <div id="lifeContent"></div>
+    <div id="lifeSleepContent"></div>
   `;
-  if(lifeTab==='todo') renderTodosInto('lifeContent','life');
-  else renderSleepInto('lifeContent');
+  renderTodosInto('lifeContent','life');
+  renderSleepInto('lifeSleepContent');
 }
-function setLifeTab(tab){ lifeTab=tab; renderLifePage(); }
 
 function renderTodosInto(containerId, type){
   const target = document.getElementById(containerId);
@@ -797,19 +789,6 @@ function renderSleepInto(containerId){
 // ============ 总览页 ============
 function renderOverview(){
   const tasks = DB.get('tasks');
-  const todos = DB.get('todos');
-  const todoUndone = todos.filter(t=>!t.done).length;
-  const todoDone = todos.filter(t=>t.done).length;
-  const assets = DB.get('assets');
-  const debts = DB.get('debts');
-  const records = DB.get('records');
-  const totalAsset = assets.reduce((s,a)=>s+(+a.amount||0),0);
-  const totalDebt = debts.reduce((s,d)=>s+(+d.amount||0),0);
-  const netWorth = totalAsset - totalDebt;
-  const todayISO = new Date().toISOString().slice(0,7);
-  const monthRecords = records.filter(r=>r.date && r.date.slice(0,7)===todayISO);
-  const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+(+r.amount||0),0);
-  const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+(+r.amount||0),0);
   const accStats = ACCOUNTS.map(a=>{
     const accTasks = tasks.filter(t=>t.account===a.id);
     const done = accTasks.filter(t=>t.done).length;
@@ -818,26 +797,6 @@ function renderOverview(){
   });
 
   document.getElementById('content').innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card positive">
-        <div class="label">净资产</div>
-        <div class="value">¥${fmt(netWorth)}</div>
-        <div class="sub">资产 ¥${fmt(totalAsset)}<br>负债 ¥${fmt(totalDebt)}</div>
-        <div class="icon">💎</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">本月结余</div>
-        <div class="value" style="color:${income-expense>=0?'var(--success)':'var(--danger)'}">¥${fmt(income-expense)}</div>
-        <div class="sub">收 ¥${fmt(income)}<br>支 ¥${fmt(expense)}</div>
-        <div class="icon">📊</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">待办任务</div>
-        <div class="value">${todoUndone}</div>
-        <div class="sub">已完成 ${todoDone}<br>共 ${todos.length} 项</div>
-        <div class="icon">✅</div>
-      </div>
-    </div>
     <div class="card">
       <div class="card-title"><span class="left"><span class="dot"></span>账号运营概览</span></div>
       <div class="task-list">
@@ -854,23 +813,10 @@ function renderOverview(){
         `).join('')}
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">
-        <span class="left"><span class="dot"></span>今日待办</span>
-        <button class="btn btn-primary btn-sm" onclick="go('todos')">查看全部</button>
-      </div>
-      <div class="task-list">
-        ${todos.filter(t=>!t.done).slice(0,5).map(t=>`
-          <div class="task-item">
-            <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div>
-            <div class="task-content">
-              <div class="task-title">${esc(t.title)}</div>
-              <div class="task-meta">${t.date||'今日'} ${t.priority?`· <span class="priority-${t.priority}">${{high:'高',mid:'中',low:'低'}[t.priority]}</span>`:''}</div>
-            </div>
-          </div>
-        `).join('')}
-        ${todos.filter(t=>!t.done).length===0?'<div class="empty"><div class="emoji">🎉</div>全部完成，干得漂亮！</div>':''}
-      </div>
+    <div class="card" style="text-align:center;cursor:pointer" onclick="go('worktodo')">
+      <div style="font-size:32px">📋</div>
+      <div style="font-size:15px;font-weight:600;margin-top:6px">工作待办</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">点击进入工作待办事项</div>
     </div>
   `;
   document.getElementById('pageActions').innerHTML = '';
