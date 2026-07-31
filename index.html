@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v4.4</span>
+        <span style="font-size:11px;color:var(--text-muted)">v4.5</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -869,10 +869,11 @@ function renderAccount(accId){
 
 // ============ 选题与脚本模块 ============
 function renderScriptSection(acc){
-  const scripts = DB.get('scripts').filter(s=>s.account===acc.id);
-  const ideas = scripts.filter(s=>!s.script);       // 仅选题，未写脚本
-  const drafted = scripts.filter(s=>s.script && !s.done); // 已写脚本未完成
-  const finished = scripts.filter(s=>s.done);        // 已完成
+  const allScripts = DB.get('scripts').filter(s=>s.account===acc.id);
+  const activeScripts = allScripts.filter(s=>!s.done);  // 未转任务的选题
+  const ideas = activeScripts.filter(s=>!s.script);       // 仅选题，未写脚本
+  const drafted = activeScripts.filter(s=>s.script);      // 已写脚本未转任务
+  const converted = allScripts.filter(s=>s.done);         // 已转任务
 
   return `
     <div class="card">
@@ -890,13 +891,13 @@ function renderScriptSection(acc){
           <div class="script-stat-label">脚本草稿</div>
         </div>
         <div class="script-stat" style="border-top:3px solid var(--success)">
-          <div class="script-stat-num">${finished.length}</div>
-          <div class="script-stat-label">已完成</div>
+          <div class="script-stat-num">${converted.length}</div>
+          <div class="script-stat-label">已转任务</div>
         </div>
       </div>
 
       <div id="scriptsList">
-        ${renderScriptItems(acc.id, scripts)}
+        ${renderScriptItems(acc.id, activeScripts)}
       </div>
     </div>
   `;
@@ -909,15 +910,13 @@ function renderScriptItems(accId, scripts){
   // 按时间倒序
   const list = [...scripts].sort((a,b)=>(b.created||0)-(a.created||0));
   return list.map(s=>{
-    const statusBadge = s.done
-      ? '<span class="badge" style="background:#c6f6d5;color:#22543d">✅ 已完成</span>'
-      : s.script
+    const statusBadge = s.script
       ? '<span class="badge" style="background:var(--primary-light);color:var(--primary)">📝 脚本草稿</span>'
       : '<span class="badge" style="background:#feebc8;color:#7b341e">💡 待写脚本</span>';
     const previewText = s.script ? esc(s.script).replace(/\n/g,' ') : '<span style="color:var(--text-muted)">还没写脚本，点「写脚本」开始创作</span>';
     const preview = previewText.length > 120 ? previewText.slice(0,120)+'…' : previewText;
     return `
-      <div class="script-item ${s.done?'script-done':''}">
+      <div class="script-item">
         <div class="script-item-header">
           <div class="script-item-title">${esc(s.title)}</div>
           ${statusBadge}
@@ -930,8 +929,7 @@ function renderScriptItems(accId, scripts){
         </div>
         <div class="script-item-actions">
           <button class="insight-btn primary" onclick="openScriptEditor('${accId}','${s.id}')">${s.script?'✏️ 编辑脚本':'✍️ 写脚本'}</button>
-          <button class="insight-btn" onclick="toggleScriptDone('${s.id}')">${s.done?'↩️ 取消完成':'✅ 标记完成'}</button>
-          <button class="insight-btn" onclick="scriptToTask('${accId}','${s.id}')">📋 转任务</button>
+          <button class="insight-btn" style="background:var(--success);color:#fff" onclick="scriptToTask('${accId}','${s.id}')">🎬 转拍摄任务</button>
           <button class="insight-btn" onclick="delScript('${s.id}')" style="color:var(--danger)">🗑 删除</button>
         </div>
       </div>
@@ -1031,14 +1029,14 @@ function toggleScriptDone(id){
 function scriptToTask(accId, id){
   const s = DB.get('scripts').find(x=>x.id===id);
   if(!s) return;
-  const item={id:uid(),account:accId,title:'【脚本】'+s.title,dueDate:new Date().toISOString().slice(0,10),priority:'mid',tags:'脚本',done:false,created:Date.now()};
+  // 不删除选题，脚本内容仍存在 scripts 表里；任务通过 tags 里的 #选题ID 关联回选题
+  const item={id:uid(),account:accId,title:s.title,dueDate:new Date().toISOString().slice(0,10),priority:'mid',tags:'拍摄 #'+id,done:false,created:Date.now()};
   DB.insert('tasks',item).then(ok=>{
     if(!ok) return;
-    // 转任务成功后，从选题列表移除该选题
-    DB.remove('scripts',id).then(()=>{
-      toast('已转为任务，已跳转到任务清单 ✓');
+    // 把选题标记为已转任务（用 done=true + 更新时间），这样它从"待处理选题"变成"已转任务"，不再显示在选题列表
+    DB.update('scripts',id,{done:true,updated:Date.now()}).then(()=>{
+      toast('已转为拍摄任务，脚本已带入 ✓');
       renderContent();
-      // 滚动到任务清单
       setTimeout(()=>{
         const tl = document.getElementById('taskList');
         if(tl){ tl.scrollIntoView({behavior:'smooth',block:'center'}); }
@@ -1059,21 +1057,31 @@ function renderTaskItems(tasks, accId){
   if(filter==='todo') list = tasks.filter(t=>!t.done);
   if(filter==='done') list = tasks.filter(t=>t.done);
   if(!list.length) return '<div class="empty"><div class="emoji">📋</div>暂无任务</div>';
-  return list.map(t=>`
-    <div class="task-item ${t.done?'done':''}">
+  const allScripts = DB.get('scripts');
+  return list.map(t=>{
+    // 从 tags 里解析关联的选题ID，判断是否有脚本
+    const scriptIdMatch = (t.tags||'').match(/#(\S+)/);
+    const linkedScript = scriptIdMatch ? allScripts.find(s=>s.id===scriptIdMatch[1]) : null;
+    const hasScript = linkedScript && linkedScript.script && linkedScript.script.trim();
+    const scriptPreview = hasScript ? esc(linkedScript.script).replace(/\n/g,' ').slice(0,80) : '';
+    return `
+    <div class="task-item ${t.done?'done':''}" style="flex-wrap:wrap">
       <div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
-      <div class="task-content" onclick="editTask('${t.id}')" style="cursor:pointer">
+      <div class="task-content" onclick="editTask('${t.id}')" style="cursor:pointer;flex:1;min-width:0">
         <div class="task-title">${esc(t.title)}</div>
         <div class="task-meta">
           ${t.dueDate?`📅 ${t.dueDate}`:''}
           ${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}
-          ${t.tags?` · <span class="task-tag">${esc(t.tags)}</span>`:''}
+          ${t.tags?` · <span class="task-tag">${esc(t.tags.replace(/#\S+/g,'').trim())}</span>`:''}
         </div>
+        ${hasScript?`<div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--primary);font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer" onclick="event.stopPropagation();viewTaskScript('${t.id}')"><b style="color:var(--primary)">📄 脚本：</b>${scriptPreview}${linkedScript.script.length>80?'…':''} <span style="color:var(--primary);white-space:nowrap">查看全文 ›</span></div>`:''}
       </div>
+      ${hasScript?`<span class="task-edit" onclick="viewTaskScript('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">📄脚本</span>`:''}
       <span class="task-edit" onclick="editTask('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span>
       <span class="task-del" onclick="delTask('${t.id}')" style="cursor:pointer;font-size:13px">删除</span>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function setAccFilter(accId, f){
@@ -1113,6 +1121,60 @@ function editTask(id){
     {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:t.priority||'mid'},
     {key:'tags',label:'标签',placeholder:'选题/拍摄/剪辑/发布...',value:t.tags||''},
   ],(data)=>{DB.update('tasks',id,data).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
+}
+
+// 查看/编辑拍摄任务的脚本（全屏弹窗，脚本内容从关联的选题读取）
+function viewTaskScript(id){
+  const t = DB.get('tasks').find(x=>x.id===id);
+  if(!t) return;
+  // 从 tags 里解析选题ID（格式：拍摄 #scriptId）
+  const scriptIdMatch = (t.tags||'').match(/#(\S+)/);
+  const scriptId = scriptIdMatch ? scriptIdMatch[1] : null;
+  const s = scriptId ? DB.get('scripts').find(x=>x.id===scriptId) : null;
+  const scriptContent = s ? (s.script||'') : '';
+  const ideaContent = s ? (s.idea||'') : '';
+
+  const m=document.createElement('div');
+  m.className='modal-overlay';
+  m.innerHTML=`
+    <div class="modal" style="width:680px;max-width:100%;max-height:90vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">🎬 拍摄任务脚本</div>
+          <div style="font-size:16px;font-weight:600">${esc(t.title)}</div>
+        </div>
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0">✕</button>
+      </div>
+      ${ideaContent?`<div style="font-size:12px;color:var(--text-muted);background:var(--bg);padding:8px 12px;border-radius:6px;margin-bottom:12px"><b>💭 灵感：</b>${esc(ideaContent)}</div>`:''}
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">脚本正文 <span style="color:var(--text-muted)">（拍摄时参考，可随时修改）</span></div>
+      <textarea id="ts_script" class="input" style="flex:1;min-height:320px;resize:vertical;line-height:1.7;font-size:14px" placeholder="暂无脚本内容">${esc(scriptContent)}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--text-muted)" id="ts_status">${scriptContent?'':'⚠️ 该任务暂无脚本'}</div>
+        <div style="display:flex;gap:6px">
+          ${t.done?'':`<button class="btn" style="background:var(--success);color:#fff" onclick="quickDoneTask('${t.id}',this)">✅ 拍完了</button>`}
+          ${scriptId?`<button class="btn btn-primary" id="ts_save">💾 保存脚本</button>`:''}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  const ta = m.querySelector('#ts_script');
+  const statusEl = m.querySelector('#ts_status');
+  if(scriptId){
+    m.querySelector('#ts_save').onclick=()=>{
+      DB.update('scripts',scriptId,{script:ta.value,updated:Date.now()}).then(ok=>{
+        if(ok){ toast('脚本已保存 ✓'); statusEl.textContent='已保存 ✓'; statusEl.style.color='var(--success)'; }
+      });
+    };
+  }
+  m.addEventListener('click',e=>{if(e.target===m){ if(scriptId && ta.value!==scriptContent){ DB.update('scripts',scriptId,{script:ta.value,updated:Date.now()}); } m.remove(); renderContent(); }});
+}
+
+// 快速标记任务完成（从脚本查看弹窗里点）
+function quickDoneTask(id,btn){
+  DB.update('tasks',id,{done:true}).then(ok=>{
+    if(ok){ toast('拍摄完成，已勾选 ✓'); btn.closest('.modal-overlay').remove(); renderContent();renderSidebar();renderBottomNav(); }
+  });
 }
 
 // ============ 资金管理 ============
