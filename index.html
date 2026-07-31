@@ -22,51 +22,51 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100dvh;margin:0;overflow:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:17px}
 .app{display:flex;height:100dvh;overflow:hidden;box-sizing:border-box}
 
 .sidebar{width:230px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;flex-shrink:0;transition:transform .2s}
 .sidebar-header{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sidebar-header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sidebar-header h1{font-size:19px;font-weight:700;display:flex;align-items:center;gap:8px}
 .sidebar-header .logo{width:28px;height:28px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.sidebar-header p{font-size:11px;color:#94a3b8;margin-top:6px}
+.sidebar-header p{font-size:12px;color:#94a3b8;margin-top:6px}
 .sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .nav-section{margin-bottom:8px}
-.nav-section-title{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;padding:8px 12px 4px;font-weight:600}
-.nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;font-size:15px;color:#cbd5e1;transition:background .15s,color .15s;user-select:none}
+.nav-section-title{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;padding:8px 12px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;font-size:16px;color:#cbd5e1;transition:background .15s,color .15s;user-select:none}
 .nav-item:hover{background:var(--sidebar-hover);color:#fff}
 .nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:500}
 .nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
-.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center}
 .nav-item .nav-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.account-sub{padding-left:42px;font-size:13px;color:#94a3b8}
+.account-sub{padding-left:42px;font-size:14px;color:#94a3b8}
 .account-sub.active{background:var(--sidebar-active);color:#fff}
-.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:#64748b;display:flex;justify-content:space-between;align-items:center;gap:8px}
 
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{min-height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;padding-top:env(safe-area-inset-top,0px);flex-shrink:0;gap:8px;box-sizing:border-box;position:sticky;top:0}
-.topbar h2{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar h2{font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
-.btn{padding:8px 16px;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-weight:500;transition:all .15s;background:transparent;font-family:inherit;white-space:nowrap}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-weight:500;transition:all .15s;background:transparent;font-family:inherit;white-space:nowrap}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover,.btn-primary:active{background:var(--primary-dark)}
 .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
 .btn-ghost:hover,.btn-ghost:active{background:var(--bg);color:var(--text)}
-.btn-sm{padding:6px 12px;font-size:14px}
+.btn-sm{padding:6px 12px;font-size:15px}
 .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
 .btn-success{background:var(--success);color:#fff}
 .content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
-.card-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-size:17px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .card-title .left{display:flex;align-items:center;gap:8px}
 .card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0}
 
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;overflow:hidden}
-.stat-card .label{font-size:12px;color:var(--text-muted);margin-bottom:4px}
-.stat-card .value{font-size:24px;font-weight:700;letter-spacing:-.5px;word-break:break-all}
-.stat-card .sub{font-size:11px;margin-top:4px;color:var(--text-muted)}
+.stat-card .label{font-size:13px;color:var(--text-muted);margin-bottom:4px}
+.stat-card .value{font-size:26px;font-weight:700;letter-spacing:-.5px;word-break:break-all}
+.stat-card .sub{font-size:12px;margin-top:4px;color:var(--text-muted)}
 .stat-card .icon{position:absolute;right:12px;top:12px;font-size:20px;opacity:.15}
 .stat-card.positive .value{color:var(--success)}
 .stat-card.negative .value{color:var(--danger)}
@@ -81,40 +81,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .task-checkbox.checked{background:var(--success);border-color:var(--success);color:#fff}
 .task-checkbox.checked::after{content:"✓";font-size:12px;font-weight:700}
 .task-content{flex:1;min-width:0}
-.task-title{font-size:16px;font-weight:500;word-break:break-word}
-.task-meta{font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.task-tag{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--primary-light);color:var(--primary)}
+.task-title{font-size:17px;font-weight:500;word-break:break-word}
+.task-meta{font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.task-tag{font-size:11px;padding:1px 6px;border-radius:4px;background:var(--primary-light);color:var(--primary)}
 .priority-high{color:var(--danger)}
 .priority-mid{color:var(--warning)}
 .priority-low{color:var(--text-muted)}
-.task-del{opacity:0;color:var(--danger);cursor:pointer;font-size:14px;transition:opacity .15s;flex-shrink:0;padding:4px}
+.task-del{opacity:0;color:var(--danger);cursor:pointer;font-size:15px;transition:opacity .15s;flex-shrink:0;padding:4px}
 .task-item:hover .task-del,.task-item:active .task-del{opacity:1}
 
 .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-.tab{padding:7px 14px;border-radius:20px;font-size:14px;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1px solid var(--border);transition:all .15s;user-select:none}
+.tab{padding:7px 14px;border-radius:20px;font-size:15px;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1px solid var(--border);transition:all .15s;user-select:none}
 .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
 .form-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.input,.select{padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:16px;outline:none;background:#fff;color:var(--text);font-family:inherit;width:100%}
+.input,.select{padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:17px;outline:none;background:#fff;color:var(--text);font-family:inherit;width:100%}
 .input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
-.form-label{font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:500}
+.form-label{font-size:13px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:500}
 
 .table-wrap{display:none;overflow-x:auto}
-.table-wrap table{width:100%;border-collapse:collapse;font-size:15px}
-.table-wrap th{text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:16px}
+.table-wrap th{text-align:left;padding:10px 8px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}
 .table-wrap td{padding:10px 8px;border-bottom:1px solid var(--border)}
 .table-wrap tr:hover td{background:var(--bg)}
 
 .card-list{display:none;flex-direction:column;gap:10px}
 .rec-card{background:var(--bg);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px}
 .rec-card .rec-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.rec-card .rec-label{font-size:11px;color:var(--text-muted)}
-.rec-card .rec-val{font-size:13px;font-weight:500;word-break:break-word;text-align:right}
+.rec-card .rec-label{font-size:12px;color:var(--text-muted)}
+.rec-card .rec-val{font-size:14px;font-weight:500;word-break:break-word;text-align:right}
 .rec-card .rec-main{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.rec-card .rec-name{font-size:14px;font-weight:600;word-break:break-word;flex:1}
-.rec-card .rec-amount{font-size:16px;font-weight:700;white-space:nowrap}
+.rec-card .rec-name{font-size:15px;font-weight:600;word-break:break-word;flex:1}
+.rec-card .rec-amount{font-size:17px;font-weight:700;white-space:nowrap}
 
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;white-space:nowrap}
 .badge-income{background:#e6fffa;color:#065f46}
 .badge-expense{background:#fff5f5;color:#9b2c2c}
 .badge-debt{background:#fffaf0;color:#9c4221}
@@ -122,15 +122,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .progress-bar{width:100%;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
 .progress-fill{height:100%;border-radius:3px;transition:width .3s}
 
-.empty{text-align:center;padding:40px 16px;color:var(--text-muted);font-size:13px}
+.empty{text-align:center;padding:40px 16px;color:var(--text-muted);font-size:14px}
 .empty .emoji{font-size:32px;margin-bottom:8px;opacity:.4}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
 .modal{background:var(--card);border-radius:12px;padding:20px;width:440px;max-width:100%;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.modal h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:16px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:2000;animation:toastIn .25s;max-width:90vw;text-align:center}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:2000;animation:toastIn .25s;max-width:90vw;text-align:center}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* AI助手 */
@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .ai-msg{display:flex;max-width:85%}
 .ai-msg-user{align-self:flex-end}
 .ai-msg-bot{align-self:flex-start}
-.ai-bubble{padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.6;word-break:break-word}
+.ai-bubble{padding:10px 14px;border-radius:12px;font-size:15px;line-height:1.6;word-break:break-word}
 .ai-bubble-user{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
 .ai-bubble-bot{background:var(--primary-light);color:var(--text);border-bottom-left-radius:4px}
 .ai-typing span{display:inline-block;animation:typing 1.4s infinite}
@@ -171,7 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .todo-count{font-size:11px;background:var(--card);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
 
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:8px 0 env(safe-area-inset-bottom,0px);z-index:100;justify-content:space-around;align-items:center;box-sizing:border-box}
-.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:11px;transition:color .15s;user-select:none}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;color:var(--text-muted);font-size:12px;transition:color .15s;user-select:none}
 .bn-item .bn-icon{font-size:24px}
 .bn-item.active{color:var(--primary);font-weight:600}
 
@@ -241,7 +241,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   .topbar{padding:0 12px;padding-top:env(safe-area-inset-top,0px)}
   .topbar h2{font-size:15px}
   .menu-btn{display:flex!important}
-  .btn-sm{padding:6px 12px;font-size:14px}
+  .btn-sm{padding:6px 12px;font-size:15px}
   .modal{border-radius:12px 12px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-height:80vh}
   .modal-overlay{align-items:flex-end;padding:0}
   .toast{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v4.5</span>
+        <span style="font-size:12px;color:var(--text-muted)">v4.6</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -955,18 +955,20 @@ function openScriptEditor(accId, scriptId){
   if(!s) return;
   const m=document.createElement('div');
   m.className='modal-overlay';
+  m.style.padding='0';
   m.innerHTML=`
-    <div class="modal" style="width:680px;max-width:100%;max-height:90vh;display:flex;flex-direction:column">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+    <div class="modal" style="width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;padding:0;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)">
         <div style="flex:1;min-width:0">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">选题标题</div>
-          <input class="input" id="se_title" value="${esc(s.title).replace(/"/g,'&quot;')}" style="font-size:16px;font-weight:600">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:2px">选题标题</div>
+          <input class="input" id="se_title" value="${esc(s.title).replace(/"/g,'&quot;')}" style="font-size:19px;font-weight:700;padding:8px 12px">
         </div>
-        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0">✕</button>
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0;font-size:22px;padding:8px 12px">✕</button>
       </div>
-      ${s.idea?`<div style="font-size:12px;color:var(--text-muted);background:var(--bg);padding:8px 12px;border-radius:6px;margin-bottom:12px"><b>💭 灵感：</b>${esc(s.idea)}</div>`:''}
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">脚本正文 <span style="color:var(--text-muted)">（支持换行，随时自动保存草稿）</span></div>
-      <textarea id="se_script" class="input" style="flex:1;min-height:300px;resize:vertical;line-height:1.7;font-size:14px" placeholder="在这里写你的口播脚本/视频文案…
+      <div style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch">
+        ${s.idea?`<div style="font-size:14px;color:var(--text-muted);background:var(--bg);padding:12px 14px;border-radius:8px;margin-bottom:14px;line-height:1.6"><b style="color:var(--text)">💭 灵感：</b>${esc(s.idea)}</div>`:''}
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:6px;font-weight:500">脚本正文 <span style="color:var(--text-muted);font-weight:400">（支持换行，随时自动保存草稿）</span></div>
+        <textarea id="se_script" class="input" style="width:100%;min-height:50vh;resize:vertical;line-height:1.8;font-size:18px;padding:14px" placeholder="在这里写你的口播脚本/视频文案…
 
 开头钩子：
 正文要点：
@@ -974,11 +976,12 @@ function openScriptEditor(accId, scriptId){
 2.
 3.
 结尾引导：">${esc(s.script||'')}</textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
-        <div style="font-size:11px;color:var(--text-muted)" id="se_status">未保存</div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">关闭</button>
-          <button class="btn btn-primary" id="se_save">💾 保存</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);gap:8px;flex-wrap:wrap;background:var(--card);flex-shrink:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))">
+        <div style="font-size:13px;color:var(--text-muted)" id="se_status">未保存</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="font-size:16px;padding:10px 20px">关闭</button>
+          <button class="btn btn-primary" id="se_save" style="font-size:16px;padding:10px 20px">💾 保存</button>
         </div>
       </div>
     </div>
@@ -1074,7 +1077,7 @@ function renderTaskItems(tasks, accId){
           ${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}
           ${t.tags?` · <span class="task-tag">${esc(t.tags.replace(/#\S+/g,'').trim())}</span>`:''}
         </div>
-        ${hasScript?`<div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--primary);font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer" onclick="event.stopPropagation();viewTaskScript('${t.id}')"><b style="color:var(--primary)">📄 脚本：</b>${scriptPreview}${linkedScript.script.length>80?'…':''} <span style="color:var(--primary);white-space:nowrap">查看全文 ›</span></div>`:''}
+        ${hasScript?`<div style="margin-top:6px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--primary);font-size:14px;color:var(--text-muted);line-height:1.6;cursor:pointer" onclick="event.stopPropagation();viewTaskScript('${t.id}')"><b style="color:var(--primary)">📄 脚本：</b>${scriptPreview}${linkedScript.script.length>80?'…':''} <span style="color:var(--primary);white-space:nowrap">查看全文 ›</span></div>`:''}
       </div>
       ${hasScript?`<span class="task-edit" onclick="viewTaskScript('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">📄脚本</span>`:''}
       <span class="task-edit" onclick="editTask('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span>
@@ -1136,23 +1139,26 @@ function viewTaskScript(id){
 
   const m=document.createElement('div');
   m.className='modal-overlay';
+  m.style.padding='0';
   m.innerHTML=`
-    <div class="modal" style="width:680px;max-width:100%;max-height:90vh;display:flex;flex-direction:column">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+    <div class="modal" style="width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;padding:0;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)">
         <div style="flex:1;min-width:0">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">🎬 拍摄任务脚本</div>
-          <div style="font-size:16px;font-weight:600">${esc(t.title)}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:2px">🎬 拍摄任务脚本</div>
+          <div style="font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
         </div>
-        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0">✕</button>
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()" style="flex-shrink:0;font-size:22px;padding:8px 12px">✕</button>
       </div>
-      ${ideaContent?`<div style="font-size:12px;color:var(--text-muted);background:var(--bg);padding:8px 12px;border-radius:6px;margin-bottom:12px"><b>💭 灵感：</b>${esc(ideaContent)}</div>`:''}
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">脚本正文 <span style="color:var(--text-muted)">（拍摄时参考，可随时修改）</span></div>
-      <textarea id="ts_script" class="input" style="flex:1;min-height:320px;resize:vertical;line-height:1.7;font-size:14px" placeholder="暂无脚本内容">${esc(scriptContent)}</textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
-        <div style="font-size:11px;color:var(--text-muted)" id="ts_status">${scriptContent?'':'⚠️ 该任务暂无脚本'}</div>
-        <div style="display:flex;gap:6px">
-          ${t.done?'':`<button class="btn" style="background:var(--success);color:#fff" onclick="quickDoneTask('${t.id}',this)">✅ 拍完了</button>`}
-          ${scriptId?`<button class="btn btn-primary" id="ts_save">💾 保存脚本</button>`:''}
+      <div style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch">
+        ${ideaContent?`<div style="font-size:14px;color:var(--text-muted);background:var(--bg);padding:12px 14px;border-radius:8px;margin-bottom:14px;line-height:1.6"><b style="color:var(--text)">💭 灵感：</b>${esc(ideaContent)}</div>`:''}
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:6px;font-weight:500">脚本正文 <span style="color:var(--text-muted);font-weight:400">（拍摄时参考，可随时修改）</span></div>
+        <textarea id="ts_script" class="input" style="width:100%;min-height:50vh;resize:vertical;line-height:1.8;font-size:18px;padding:14px" placeholder="暂无脚本内容">${esc(scriptContent)}</textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);gap:8px;flex-wrap:wrap;background:var(--card);flex-shrink:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))">
+        <div style="font-size:13px;color:var(--text-muted)" id="ts_status">${scriptContent?'':'⚠️ 该任务暂无脚本'}</div>
+        <div style="display:flex;gap:8px">
+          ${t.done?'':`<button class="btn" style="background:var(--success);color:#fff;font-size:16px;padding:10px 20px" onclick="quickDoneTask('${t.id}',this)">✅ 拍完了</button>`}
+          ${scriptId?`<button class="btn btn-primary" id="ts_save" style="font-size:16px;padding:10px 20px">💾 保存脚本</button>`:''}
         </div>
       </div>
     </div>
