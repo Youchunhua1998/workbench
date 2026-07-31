@@ -133,6 +133,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:2000;animation:toastIn .25s;max-width:90vw;text-align:center}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
+/* AI助手 */
+.ai-fab{position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom,0px));width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;font-size:24px;cursor:pointer;z-index:1500;box-shadow:0 4px 16px rgba(236,72,153,0.4);transition:transform .2s}
+.ai-fab:active{transform:scale(0.9)}
+.ai-panel{position:fixed;bottom:0;left:0;right:0;height:75vh;background:var(--card);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);z-index:1600;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s;padding-bottom:env(safe-area-inset-bottom,0px)}
+.ai-panel.open{transform:translateY(0)}
+.ai-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ai-header h3{font-size:16px;display:flex;align-items:center;gap:8px}
+.ai-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);padding:4px 8px}
+.ai-chat{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.ai-msg{display:flex;max-width:85%}
+.ai-msg-user{align-self:flex-end}
+.ai-msg-bot{align-self:flex-start}
+.ai-bubble{padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.6;word-break:break-word}
+.ai-bubble-user{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.ai-bubble-bot{background:var(--primary-light);color:var(--text);border-bottom-left-radius:4px}
+.ai-typing span{display:inline-block;animation:typing 1.4s infinite}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3}30%{opacity:1}}
+.ai-input-area{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;align-items:flex-end}
+.ai-input{flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;resize:none;max-height:80px;min-height:40px;font-family:inherit;line-height:1.5}
+.ai-input:focus{outline:none;border-color:var(--primary)}
+.ai-send{width:40px;height:40px;border-radius:8px;background:var(--primary);color:#fff;border:none;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ai-send:disabled{opacity:.5}
+
 .finance-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .finance-card{padding:14px;border-radius:10px;color:#fff}
 .finance-card.assets{background:linear-gradient(135deg,#ec4899,#db2777)}
@@ -251,12 +276,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
+        <span style="font-size:11px;color:var(--text-muted)">v2.1</span>
       </div>
     </header>
     <div class="content" id="content"></div>
   </main>
 </div>
 <nav class="bottom-nav" id="bottomNav"></nav>
+
+<button class="ai-fab" onclick="toggleAI()" title="AI助手">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-header">
+    <h3>🤖 AI创作助手</h3>
+    <button class="ai-close" onclick="toggleAI()">×</button>
+  </div>
+  <div class="ai-chat" id="aiChat"></div>
+  <div class="ai-input-area">
+    <textarea class="ai-input" id="aiInput" placeholder="输入你的问题..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+    <button class="ai-send" onclick="sendAIMessage()">➤</button>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -268,13 +307,13 @@ const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 // 表名映射
 const TABLE_MAP = {
   tasks: 'tasks', todos: 'todos', assets: 'assets',
-  debts: 'debts', records: 'records', scripts: 'scripts'
+  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats'
 };
 
 // 各表排序字段（有的表没有created字段，用id排序）
 const SORT_MAP = {
   tasks: 'created', todos: 'created', assets: 'id',
-  debts: 'id', records: 'date', scripts: 'created'
+  debts: 'id', records: 'date', scripts: 'created', stats: 'created'
 };
 
 // 字段名转换（驼峰 ↔ 下划线）
@@ -453,6 +492,17 @@ function toRow(key, item, patch=false){
       row.done = item.done;
       row.created = item.created;
       row.updated = item.updated || 0;
+    } else if(key==='stats'){
+      row.id = item.id;
+      row.account = item.account;
+      row.title = item.title;
+      row.publish_date = item.publishDate || null;
+      row.views = item.views || 0;
+      row.likes = item.likes || 0;
+      row.orders = item.orders || 0;
+      row.followers = item.followers || 0;
+      row.note = item.note || '';
+      row.created = item.created;
     }
   } else {
     // 部分更新
@@ -488,6 +538,15 @@ function toRow(key, item, patch=false){
       if('script' in item) row.script = item.script;
       if('done' in item) row.done = item.done;
       if('updated' in item) row.updated = item.updated;
+    } else if(key==='stats'){
+      if('account' in item) row.account = item.account;
+      if('title' in item) row.title = item.title;
+      if('publishDate' in item) row.publish_date = item.publishDate;
+      if('views' in item) row.views = item.views;
+      if('likes' in item) row.likes = item.likes;
+      if('orders' in item) row.orders = item.orders;
+      if('followers' in item) row.followers = item.followers;
+      if('note' in item) row.note = item.note;
     }
   }
   return row;
@@ -505,6 +564,8 @@ function fromRow(key, row){
     return {id:row.id, type:row.type, date:row.date, amount:row.amount, category:row.category, note:row.note};
   } else if(key==='scripts'){
     return {id:row.id, account:row.account, title:row.title, idea:row.idea, script:row.script, done:row.done, created:row.created, updated:row.updated};
+  } else if(key==='stats'){
+    return {id:row.id, account:row.account, title:row.title, publishDate:row.publish_date, views:row.views||0, likes:row.likes||0, orders:row.orders||0, followers:row.followers||0, note:row.note||'', created:row.created||0};
   }
   return row;
 }
@@ -717,6 +778,7 @@ function renderAccount(accId){
       <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${tasks.length?Math.round(done/tasks.length*100):0}%;background:${acc.color}"></div></div>
     </div>
 
+    ${renderStatsSection(acc.id)}
     ${renderScriptSection(acc)}
 
     <div class="card">
@@ -1214,6 +1276,7 @@ async function init(){
     DB.sync('debts'),
     DB.sync('records'),
     DB.sync('scripts'),
+    DB.sync('stats'),
   ]);
   
   renderSidebar();
@@ -1242,12 +1305,194 @@ async function init(){
 // 手动强制同步（可用于按钮调用）
 async function forceSync(){
   toast('正在同步...');
-  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats')]);
   renderSidebar();
   renderBottomNav();
   renderContent();
   toast('同步完成 ✓');
 }
+
+// ============ AI 助手 ============
+const QWEN_KEY = 'sk-ws-H.EIXXYYM.EfHJ.MEUCIH0kR0X-7pVUuK0KCTYPY_UEDmNZR0nA8LMkUJdZmZ0-AiEAusofpU-ewovmOFosm-9UojTt4k58vKxF16d6dRnwqt8';
+const QWEN_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+let aiMessages = [];
+let aiLoading = false;
+
+function toggleAI(){
+  const panel = document.getElementById('aiPanel');
+  if(panel.classList.contains('open')){
+    panel.classList.remove('open');
+  } else {
+    panel.classList.add('open');
+    if(aiMessages.length === 0){
+      aiMessages.push({role:'system',content:'你是"尤的工作台"的AI助手，帮助一位自媒体创作者管理三个账号：养生小尤(养生好物种草带货)、要早睡的尤(自律生活人设IP)、不爱吃姜(情感口播内容)。你可以帮用户：1.分析账号运营数据并给建议 2.生成爆款选题 3.写脚本 4.分析发布数据(播放量/出单等)。回复要简洁实用，用中文。当用户要求生成选题时，每个选题包含标题和灵感思路。'});
+      addAIMessage('assistant','你好！我是你的AI创作助手 🤖\n\n你可以让我：\n• "帮我生成5个养生赛道的爆款选题"\n• "分析一下我三个账号这周的运营情况"\n• "我发了3条视频，播放量分别是8万、3万、15万，帮我分析"\n• "帮我写熬夜护肝茶的口播脚本"\n\n有什么需要随时说！');
+    }
+    setTimeout(()=>document.getElementById('aiInput').focus(),300);
+  }
+}
+
+function addAIMessage(role, text){
+  const chat = document.getElementById('aiChat');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + (role==='user'?'ai-msg-user':'ai-msg-bot');
+  if(role==='user'){
+    div.innerHTML = '<div class="ai-bubble ai-bubble-user">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+  } else {
+    div.innerHTML = '<div class="ai-bubble ai-bubble-bot">'+esc(text).replace(/\n/g,'<br>')+'</div>';
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendAIMessage(){
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if(!text || aiLoading) return;
+  input.value = '';
+  addAIMessage('user', text);
+  aiMessages.push({role:'user', content:text});
+
+  // 显示加载中
+  aiLoading = true;
+  const chat = document.getElementById('aiChat');
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'ai-msg ai-msg-bot';
+  loadingDiv.id = 'aiLoading';
+  loadingDiv.innerHTML = '<div class="ai-bubble ai-bubble-bot"><span class="ai-typing">思考中<span>·</span><span>·</span><span>·</span></span></div>';
+  chat.appendChild(loadingDiv);
+  chat.scrollTop = chat.scrollHeight;
+
+  try{
+    // 构建上下文：把工作台数据概要发给AI
+    const context = buildAIContext();
+    const messages = [
+      {role:'system', content: aiMessages[0].content + '\n\n以下是用户工作台的当前数据概要：\n' + context},
+      ...aiMessages.slice(1)
+    ];
+
+    const resp = await fetch(QWEN_URL, {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+QWEN_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        model:'qwen-plus',
+        messages:messages,
+        temperature:0.8,
+        max_tokens:2000
+      })
+    });
+    const data = await resp.json();
+    const reply = data.choices && data.choices[0] ? data.choices[0].message.content : '抱歉，出错了，请重试。';
+
+    document.getElementById('aiLoading')?.remove();
+    addAIMessage('assistant', reply);
+    aiMessages.push({role:'assistant', content:reply});
+
+    // 检查是否需要写入选题（如果用户要求生成选题且AI回复中包含选题格式）
+    // 这里先简单处理，后续可以优化
+  }catch(e){
+    document.getElementById('aiLoading')?.remove();
+    addAIMessage('assistant', '⚠️ 网络错误，请重试。如果持续出错，可能是API额度用完了。');
+    console.error('AI error:', e);
+  }
+  aiLoading = false;
+}
+
+function buildAIContext(){
+  let ctx = '';
+  const tasks = DB.get('tasks');
+  const scripts = DB.get('scripts');
+  const stats = DB.get('stats');
+  const records = DB.get('records');
+
+  ACCOUNTS.forEach(a=>{
+    const accTasks = tasks.filter(t=>t.account===a.id);
+    const accScripts = scripts.filter(s=>s.account===a.id);
+    const accStats = stats.filter(s=>s.account===a.id);
+    ctx += `\n【${a.name}】(${a.desc})\n`;
+    ctx += `  任务: ${accTasks.length}条 (完成${accTasks.filter(t=>t.done).length}条)\n`;
+    ctx += `  选题: ${accScripts.length}个 (已写脚本${accScripts.filter(s=>s.script).length}个)\n`;
+    if(accStats.length){
+      ctx += `  发布数据:\n`;
+      accStats.forEach(s=>{
+        ctx += `    - ${s.title} | 播放${s.views} 点赞${s.likes} 出单${s.orders} 涨粉${s.followers} (${s.publishDate||'无日期'})\n`;
+      });
+    }
+  });
+
+  const income = records.filter(r=>r.type==='income').reduce((s,r)=>s+(+r.amount||0),0);
+  const expense = records.filter(r=>r.type==='expense').reduce((s,r)=>s+(+r.amount||0),0);
+  ctx += `\n本月收入: ¥${income}，支出: ¥${expense}\n`;
+  return ctx;
+}
+
+// ============ 发布数据记录 ============
+function openStatModal(accId){
+  modalForm('记录发布数据',[
+    {key:'title',label:'视频标题',placeholder:'例如：熬夜护肝茶测评',required:true},
+    {key:'publishDate',label:'发布日期',type:'date',value:new Date().toISOString().slice(0,10),required:true},
+    {key:'views',label:'播放量',type:'number',placeholder:'例如：80000'},
+    {key:'likes',label:'点赞数',type:'number',placeholder:'例如：1200'},
+    {key:'orders',label:'出单数',type:'number',placeholder:'带货出单（没有填0）'},
+    {key:'followers',label:'涨粉数',type:'number',placeholder:'例如：800'},
+    {key:'note',label:'备注',placeholder:'可选'},
+  ],(data)=>{
+    const item={id:uid(),account:accId,...data,views:+data.views||0,likes:+data.likes||0,orders:+data.orders||0,followers:+data.followers||0,created:Date.now()};
+    DB.insert('stats',item).then(ok=>{ if(ok){ toast('发布数据已记录 ✓'); renderContent(); } });
+  });
+}
+
+function delStat(id){
+  if(!confirm('确认删除此条发布数据？'))return;
+  DB.remove('stats',id).then(ok=>{ if(ok){ renderContent(); } });
+}
+
+function renderStatsSection(accId){
+  const stats = DB.get('stats').filter(s=>s.account===accId);
+  if(!stats.length) return '';
+  const totalViews = stats.reduce((s,v)=>s+(+v.views||0),0);
+  const totalOrders = stats.reduce((s,v)=>s+(+v.orders||0),0);
+  const totalFollowers = stats.reduce((s,v)=>s+(+v.followers||0),0);
+  return `
+    <div class="card">
+      <div class="card-title">
+        <span class="left"><span class="dot" style="background:var(--warning)"></span>发布数据</span>
+        <button class="btn btn-ghost btn-sm" onclick="openStatModal('${accId}')">+ 记录</button>
+      </div>
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+        <div class="stat-card" style="padding:12px"><div class="label" style="font-size:12px">总播放</div><div class="value" style="font-size:18px">${totalViews>10000?(totalViews/10000).toFixed(1)+'万':totalViews}</div></div>
+        <div class="stat-card" style="padding:12px"><div class="label" style="font-size:12px">总出单</div><div class="value" style="font-size:18px;color:var(--success)">${totalOrders}</div></div>
+        <div class="stat-card" style="padding:12px"><div class="label" style="font-size:12px">总涨粉</div><div class="value" style="font-size:18px;color:var(--primary)">${totalFollowers}</div></div>
+      </div>
+      <div class="card-list">
+        ${stats.map(s=>`<div class="rec-card">
+          <div class="rec-main">
+            <div><div class="rec-name">${esc(s.title)}</div><div class="rec-label">${s.publishDate||'-'}</div></div>
+            <div class="rec-amount">播放 ${s.views>10000?(s.views/10000).toFixed(1)+'万':s.views}</div>
+          </div>
+          <div class="rec-row"><span class="rec-label">点赞</span><span class="rec-val">${s.likes}</span></div>
+          <div class="rec-row"><span class="rec-label">出单</span><span class="rec-val" style="color:var(--success);font-weight:600">${s.orders}</span></div>
+          <div class="rec-row"><span class="rec-label">涨粉</span><span class="rec-val" style="color:var(--primary)">${s.followers}</span></div>
+          ${s.note?`<div class="rec-row"><span class="rec-label">备注</span><span class="rec-val">${esc(s.note)}</span></div>`:''}
+          <div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-edit" onclick="openAIWithStat('${s.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:12px">AI分析</span><span class="task-del" onclick="delStat('${s.id}')" style="cursor:pointer;font-size:13px">删除</span></span></div>
+        </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openAIWithStat(statId){
+  const s = DB.get('stats').find(x=>x.id===statId);
+  if(!s) return;
+  const acc = ACCOUNTS.find(a=>a.id===s.account);
+  if(!document.getElementById('aiPanel').classList.contains('open')) toggleAI();
+  document.getElementById('aiInput').value = `分析这条发布数据：账号【${acc.name}】，标题《${s.title}》，发布日期${s.publishDate}，播放量${s.views}，点赞${s.likes}，出单${s.orders}，涨粉${s.followers}。请帮我分析数据表现并给出后续创作建议。`;
+  sendAIMessage();
+}
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
 else init();
 </script>
