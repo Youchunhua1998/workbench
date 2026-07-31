@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:11px;color:var(--text-muted)">v2.1</span>
+        <span style="font-size:11px;color:var(--text-muted)">v4.0</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -307,13 +307,13 @@ const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 // 表名映射
 const TABLE_MAP = {
   tasks: 'tasks', todos: 'todos', assets: 'assets',
-  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats'
+  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats', sleeps: 'sleep_logs'
 };
 
 // 各表排序字段（有的表没有created字段，用id排序）
 const SORT_MAP = {
   tasks: 'created', todos: 'created', assets: 'id',
-  debts: 'id', records: 'date', scripts: 'created', stats: 'created'
+  debts: 'id', records: 'date', scripts: 'created', stats: 'created', sleeps: 'date'
 };
 
 // 字段名转换（驼峰 ↔ 下划线）
@@ -503,6 +503,12 @@ function toRow(key, item, patch=false){
       row.followers = item.followers || 0;
       row.note = item.note || '';
       row.created = item.created;
+    } else if(key==='sleeps'){
+      row.id = item.id;
+      row.date = item.date;
+      row.wake_time = item.wakeTime || '';
+      row.sleep_time = item.sleepTime || '';
+      row.created = item.created;
     }
   } else {
     // 部分更新
@@ -547,6 +553,10 @@ function toRow(key, item, patch=false){
       if('orders' in item) row.orders = item.orders;
       if('followers' in item) row.followers = item.followers;
       if('note' in item) row.note = item.note;
+    } else if(key==='sleeps'){
+      if('date' in item) row.date = item.date;
+      if('wakeTime' in item) row.wake_time = item.wakeTime;
+      if('sleepTime' in item) row.sleep_time = item.sleepTime;
     }
   }
   return row;
@@ -566,6 +576,8 @@ function fromRow(key, row){
     return {id:row.id, account:row.account, title:row.title, idea:row.idea, script:row.script, done:row.done, created:row.created, updated:row.updated};
   } else if(key==='stats'){
     return {id:row.id, account:row.account, title:row.title, publishDate:row.publish_date, views:row.views||0, likes:row.likes||0, orders:row.orders||0, followers:row.followers||0, note:row.note||'', created:row.created||0};
+  } else if(key==='sleeps'){
+    return {id:row.id, date:row.date, wakeTime:row.wake_time||'', sleepTime:row.sleep_time||'', created:row.created||0};
   }
   return row;
 }
@@ -584,8 +596,10 @@ const PAGES = {
   acc1:{title:ACCOUNTS[0].name},
   acc2:{title:ACCOUNTS[1].name},
   acc3:{title:ACCOUNTS[2].name},
+  worktodo:{title:'工作待办'},
   finance:{title:'资金管理'},
-  todos:{title:'日常待办'},
+  lifetodo:{title:'生活待办'},
+  sleep:{title:'作息打卡'},
 };
 
 const BN_ITEMS = [
@@ -594,7 +608,7 @@ const BN_ITEMS = [
   {page:'acc2',icon:'☀️',label:'早睡'},
   {page:'acc3',icon:'💍',label:'不吃姜'},
   {page:'finance',icon:'💰',label:'资金'},
-  {page:'todos',icon:'✅',label:'待办'},
+  {page:'lifetodo',icon:'✅',label:'生活'},
 ];
 
 let currentPage = 'overview';
@@ -610,7 +624,8 @@ function toggleSidebar(open){
 
 function renderSidebar(){
   const nav = document.getElementById('nav');
-  const todoCount = DB.get('todos').filter(t=>!t.done).length;
+  const workTodoCount = DB.get('todos').filter(t=>!t.done && t.category!=='生活' && t.category!=='家务' && t.category!=='购物' && t.category!=='健康' && t.category!=='社交').length;
+  const lifeTodoCount = DB.get('todos').filter(t=>!t.done && (t.category==='生活'||t.category==='家务'||t.category==='购物'||t.category==='健康'||t.category==='社交')).length;
   nav.innerHTML = `
     <div class="nav-section">
       <div class="nav-section-title">总览</div>
@@ -619,12 +634,16 @@ function renderSidebar(){
       </div>
     </div>
     <div class="nav-section">
-      <div class="nav-section-title">工作任务</div>
+      <div class="nav-section-title">工作管理</div>
       ${ACCOUNTS.map(a=>`
         <div class="nav-item account-sub ${currentPage===a.id?'active':''}" onclick="go('${a.id}')">
           <span class="icon">${a.icon}</span><span class="nav-text">${a.name}</span>
         </div>
       `).join('')}
+      <div class="nav-item ${currentPage==='worktodo'?'active':''}" onclick="go('worktodo')">
+        <span class="icon">📋</span><span class="nav-text">工作待办</span>
+        ${workTodoCount?`<span class="nav-badge">${workTodoCount}</span>`:''}
+      </div>
     </div>
     <div class="nav-section">
       <div class="nav-section-title">资金管理</div>
@@ -633,10 +652,13 @@ function renderSidebar(){
       </div>
     </div>
     <div class="nav-section">
-      <div class="nav-section-title">日常</div>
-      <div class="nav-item ${currentPage==='todos'?'active':''}" onclick="go('todos')">
-        <span class="icon">✅</span><span class="nav-text">日常待办</span>
-        ${todoCount?`<span class="nav-badge">${todoCount}</span>`:''}
+      <div class="nav-section-title">生活管理</div>
+      <div class="nav-item ${currentPage==='lifetodo'?'active':''}" onclick="go('lifetodo')">
+        <span class="icon">✅</span><span class="nav-text">生活待办</span>
+        ${lifeTodoCount?`<span class="nav-badge">${lifeTodoCount}</span>`:''}
+      </div>
+      <div class="nav-item ${currentPage==='sleep'?'active':''}" onclick="go('sleep')">
+        <span class="icon">😴</span><span class="nav-text">作息打卡</span>
       </div>
     </div>
   `;
@@ -667,7 +689,9 @@ function renderContent(){
   if(currentPage==='overview') return renderOverview();
   if(currentPage.startsWith('acc')) return renderAccount(currentPage);
   if(currentPage==='finance') return renderFinance();
-  if(currentPage==='todos') return renderTodos();
+  if(currentPage==='worktodo') return renderTodos('work');
+  if(currentPage==='lifetodo') return renderTodos('life');
+  if(currentPage==='sleep') return renderSleep();
 }
 
 // ============ 总览页 ============
@@ -1142,11 +1166,21 @@ function editRecord(id){
   ],(data)=>{DB.update('records',id,{...data,amount:+data.amount}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
 }
 
-// ============ 日常待办 ============
-function renderTodos(){
-  const todos = DB.get('todos');
+// ============ 待办（工作/生活） ============
+const LIFE_CATS = ['家务','购物','健康','社交','学习','其他'];
+const WORK_CATS = ['选题','拍摄','剪辑','发布','运营','其他'];
+
+function isLifeTodo(t){
+  return LIFE_CATS.includes(t.category);
+}
+
+function renderTodos(type){
+  const allTodos = DB.get('todos');
+  const todos = type==='life' ? allTodos.filter(isLifeTodo) : allTodos.filter(t=>!isLifeTodo(t));
   const filter = currentTodoFilter;
-  document.getElementById('pageActions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTodoModal()">+ 待办</button>`;
+  const title = type==='life' ? '生活待办' : '工作待办';
+  const cats = type==='life' ? LIFE_CATS : WORK_CATS;
+  document.getElementById('pageActions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openTodoModal('${type}')">+ ${title}</button>`;
   const today = new Date().toISOString().slice(0,10);
   const overdue=[],todayItems=[],upcoming=[],done=[],noDate=[];
   todos.forEach(t=>{if(t.done){done.push(t);return;}if(!t.date){noDate.push(t);return;}if(t.date<today)overdue.push(t);else if(t.date===today)todayItems.push(t);else upcoming.push(t);});
@@ -1160,29 +1194,158 @@ function renderTodos(){
       <div class="tab ${filter==='todo'?'active':''}" onclick="setTodoFilter('todo')">待办 (${todos.length-done.length})</div>
       <div class="tab ${filter==='done'?'active':''}" onclick="setTodoFilter('done')">已完成 (${done.length})</div>
     </div>
-    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content" onclick="editTodo('${t.id}')" style="cursor:pointer"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-edit" onclick="editTodo('${t.id}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span><span class="task-del" onclick="delTodo('${t.id}')" style="cursor:pointer;font-size:13px">删除</span></div>`).join('')}</div></div>`).join('')}
-    ${todos.length===0?'<div class="card"><div class="empty"><div class="emoji">✅</div>暂无待办，点击右上角添加</div></div>':''}
+    ${groups.map(g=>`<div class="todo-group"><div class="todo-group-title"><span>${g.title}</span><span class="todo-count">${g.items.length}</span></div><div class="task-list">${g.items.map(t=>`<div class="task-item ${t.done?'done':''}"><div class="task-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t.id}')"></div><div class="task-content" onclick="editTodo('${t.id}','${type}')" style="cursor:pointer"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${t.date?`📅 ${t.date}`:''}${t.priority?` · <span class="priority-${t.priority}">${{high:'紧急',mid:'重要',low:'常规'}[t.priority]}</span>`:''}${t.category?` · <span class="task-tag">${esc(t.category)}</span>`:''}</div></div><span class="task-edit" onclick="editTodo('${t.id}','${type}')" style="cursor:pointer;margin-right:6px;font-size:13px;color:var(--primary)">编辑</span><span class="task-del" onclick="delTodo('${t.id}')" style="cursor:pointer;font-size:13px">删除</span></div>`).join('')}</div></div>`).join('')}
+    ${todos.length===0?`<div class="card"><div class="empty"><div class="emoji">✅</div>暂无${title}，点击右上角添加</div></div>`:''}
   `;
 }
-function setTodoFilter(f){currentTodoFilter=f;renderTodos();}
-function openTodoModal(){
-  modalForm('添加待办',[
-    {key:'title',label:'待办内容',placeholder:'例如：剪辑口播视频',required:true},
+function setTodoFilter(f){currentTodoFilter=f;renderContent();}
+function openTodoModal(type){
+  const cats = type==='life' ? LIFE_CATS : WORK_CATS;
+  const defaultCat = type==='life' ? '家务' : '选题';
+  const placeholder = type==='life' ? '例如：买日用品' : '例如：剪辑口播视频';
+  modalForm(type==='life'?'添加生活待办':'添加工作待办',[
+    {key:'title',label:'待办内容',placeholder:placeholder,required:true},
     {key:'date',label:'计划日期',type:'date',value:new Date().toISOString().slice(0,10)},
     {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:'mid'},
-    {key:'category',label:'分类',type:'select',options:['工作','生活','学习','健康','财务','其他'],value:'工作'},
+    {key:'category',label:'分类',type:'select',options:cats,value:defaultCat},
   ],(data)=>{const item={id:uid(),...data,done:false,created:Date.now()};DB.insert('todos',item).then(ok=>{ if(ok){ toast('待办已添加 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
 }
-function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done}).then(ok=>{ if(ok){ if(currentPage==='todos')renderTodos();else renderContent(); renderSidebar();renderBottomNav(); } });}}
+function toggleTodo(id){const todos=DB.get('todos');const t=todos.find(x=>x.id===id);if(t){t.done=!t.done;DB.update('todos',id,{done:t.done}).then(ok=>{ if(ok){ renderContent(); renderSidebar();renderBottomNav(); } });}}
 function delTodo(id){if(!confirm('确认删除此待办？'))return;DB.remove('todos',id).then(ok=>{ if(ok){ renderContent();renderSidebar();renderBottomNav(); } });}
-function editTodo(id){
+function editTodo(id,type){
   const t=DB.get('todos').find(x=>x.id===id);if(!t)return;
-  modalForm('编辑待办',[
+  const cats = type==='life' ? LIFE_CATS : WORK_CATS;
+  modalForm(type==='life'?'编辑生活待办':'编辑工作待办',[
     {key:'title',label:'待办内容',placeholder:'例如：剪辑口播视频',required:true,value:t.title},
     {key:'date',label:'计划日期',type:'date',value:t.date||''},
     {key:'priority',label:'优先级',type:'select',options:[['low','常规'],['mid','重要'],['high','紧急']],value:t.priority||'mid'},
-    {key:'category',label:'分类',type:'select',options:['工作','生活','学习','健康','财务','其他'],value:t.category||'工作'},
+    {key:'category',label:'分类',type:'select',options:cats,value:t.category||cats[0]},
   ],(data)=>{DB.update('todos',id,data).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent();renderSidebar();renderBottomNav(); } });});
+}
+
+// ============ 作息打卡 ============
+function renderSleep(){
+  document.getElementById('pageActions').innerHTML = '';
+  const logs = DB.get('sleeps');
+  const today = new Date().toISOString().slice(0,10);
+  const todayLog = logs.find(l=>l.date===today) || {};
+  
+  // 最近7天打卡记录
+  const last7 = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(Date.now()-i*86400000).toISOString().slice(0,10);
+    const log = logs.find(l=>l.date===d);
+    last7.push({date:d, log});
+  }
+  
+  // 统计
+  const validLogs = logs.filter(l=>l.wakeTime || l.sleepTime);
+  const wakeTimes = validLogs.filter(l=>l.wakeTime).map(l=>l.wakeTime);
+  const sleepTimes = validLogs.filter(l=>l.sleepTime).map(l=>l.sleepTime);
+  
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card positive">
+        <div class="label">今日起床</div>
+        <div class="value" style="font-size:22px">${todayLog.wakeTime||'未打卡'}</div>
+        <div class="sub">${todayLog.wakeTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="icon">🌅</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
+        <div class="label" style="color:rgba(255,255,255,0.8)">今日睡觉</div>
+        <div class="value" style="font-size:22px;color:#fff">${todayLog.sleepTime||'未打卡'}</div>
+        <div class="sub" style="color:rgba(255,255,255,0.8)">${todayLog.sleepTime?'✅ 已打卡':'点击下方打卡'}</div>
+        <div class="icon">🌙</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">已打卡天数</div>
+        <div class="value">${validLogs.length}</div>
+        <div class="sub">累计记录</div>
+        <div class="icon">📊</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title"><span class="left"><span class="dot" style="background:var(--primary)"></span>今日打卡</span></div>
+      <div style="display:flex;gap:12px">
+        <button class="btn btn-primary" style="flex:1;font-size:16px;padding:16px" onclick="sleepCheckin('wake')">
+          ${todayLog.wakeTime?'🔄 更新起床':'🌅 起床打卡'}
+        </button>
+        <button class="btn" style="flex:1;font-size:16px;padding:16px;background:#6366f1;color:#fff" onclick="sleepCheckin('sleep')">
+          ${todayLog.sleepTime?'🔄 更新睡觉':'🌙 睡觉打卡'}
+        </button>
+      </div>
+      ${todayLog.wakeTime||todayLog.sleepTime?`<div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--text-muted)">
+        今日起床：${todayLog.wakeTime||'—'} ｜ 今日睡觉：${todayLog.sleepTime||'—'}
+        ${todayLog.wakeTime&&todayLog.sleepTime?'':' ｜ 等待第二次打卡'}
+      </div>`:''}
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="left"><span class="dot" style="background:var(--warning)"></span>最近7天作息</span></div>
+      <div class="card-list">
+        ${last7.map(d=>`
+          <div class="rec-card">
+            <div class="rec-main">
+              <div>
+                <div class="rec-name">${d.date===today?'今天':d.date.slice(5)}</div>
+                <div class="rec-label">${['周日','周一','周二','周三','周四','周五','周六'][new Date(d.date).getDay()]}</div>
+              </div>
+              <div style="text-align:right;font-size:13px">
+                ${d.log?(d.log.wakeTime?`<span style="color:var(--success)">🌅 ${d.log.wakeTime}</span>`:'<span style="color:var(--text-muted)">未起床</span>'):'<span style="color:var(--text-muted)">无记录</span>'}
+                ${d.log&&d.log.sleepTime?`<br><span style="color:#8b5cf6">🌙 ${d.log.sleepTime}</span>`:''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${validLogs.length>0?`<div class="card">
+      <div class="card-title"><span class="left"><span class="dot" style="background:var(--success)"></span>作息统计</span></div>
+      <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-card" style="padding:14px"><div class="label" style="font-size:12px">平均起床</div><div class="value" style="font-size:20px">${avgTime(wakeTimes)}</div></div>
+        <div class="stat-card" style="padding:14px"><div class="label" style="font-size:12px">平均睡觉</div><div class="value" style="font-size:20px;color:#8b5cf6">${avgTime(sleepTimes)}</div></div>
+      </div>
+    </div>`:''}
+  `;
+}
+
+function avgTime(times){
+  if(!times.length) return '—';
+  const mins = times.map(t=>{
+    const [h,m] = t.split(':').map(Number);
+    return h*60+m;
+  });
+  const avg = Math.round(mins.reduce((a,b)=>a+b,0)/mins.length);
+  const h = Math.floor(avg/60), m = avg%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+
+function sleepCheckin(type){
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const today = new Date().toISOString().slice(0,10);
+  const logs = DB.get('sleeps');
+  const existing = logs.find(l=>l.date===today);
+  
+  if(existing){
+    const patch = type==='wake' ? {wakeTime:time} : {sleepTime:time};
+    DB.update('sleeps', existing.id, patch).then(ok=>{
+      if(ok){ toast(type==='wake'?'起床打卡成功 ✓':'睡觉打卡成功 ✓'); renderContent(); }
+    });
+  } else {
+    const item = {
+      id: uid(),
+      date: today,
+      wakeTime: type==='wake' ? time : '',
+      sleepTime: type==='sleep' ? time : '',
+      created: Date.now()
+    };
+    DB.insert('sleeps', item).then(ok=>{
+      if(ok){ toast(type==='wake'?'起床打卡成功 ✓':'睡觉打卡成功 ✓'); renderContent(); }
+    });
+  }
 }
 
 // ============ 通用模态 ============
@@ -1277,6 +1440,7 @@ async function init(){
     DB.sync('records'),
     DB.sync('scripts'),
     DB.sync('stats'),
+    DB.sync('sleeps'),
   ]);
   
   renderSidebar();
@@ -1305,7 +1469,7 @@ async function init(){
 // 手动强制同步（可用于按钮调用）
 async function forceSync(){
   toast('正在同步...');
-  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats')]);
+  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats'),DB.sync('sleeps')]);
   renderSidebar();
   renderBottomNav();
   renderContent();
