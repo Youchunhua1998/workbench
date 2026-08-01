@@ -276,7 +276,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
       </div>
       <div class="actions" id="pageActions">
         <button class="btn-sm" onclick="forceSync()" title="同步数据" style="background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);font-size:14px;padding:6px 12px;border-radius:8px;white-space:nowrap">🔄 同步</button>
-        <span style="font-size:12px;color:var(--text-muted)">v4.6</span>
+        <span style="font-size:12px;color:var(--text-muted)">v4.7</span>
       </div>
     </header>
     <div class="content" id="content"></div>
@@ -307,13 +307,13 @@ const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 // 表名映射
 const TABLE_MAP = {
   tasks: 'tasks', todos: 'todos', assets: 'assets',
-  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats'
+  debts: 'debts', records: 'records', scripts: 'scripts', stats: 'video_stats', futures: 'futures'
 };
 
 // 各表排序字段（有的表没有created字段，用id排序）
 const SORT_MAP = {
   tasks: 'created', todos: 'created', assets: 'id',
-  debts: 'id', records: 'date', scripts: 'created', stats: 'created'
+  debts: 'id', records: 'date', scripts: 'created', stats: 'created', futures: 'date'
 };
 
 // 字段名转换（驼峰 ↔ 下划线）
@@ -323,7 +323,8 @@ const FIELD_MAP = {
   assets: {},
   debts: {},
   records: {},
-  scripts: {}
+  scripts: {},
+  futures: {}
 };
 
 // 本地缓存（用于快速渲染，云端为准）
@@ -1188,6 +1189,7 @@ function renderFinance(){
   const assets = DB.get('assets');
   const debts = DB.get('debts');
   const records = DB.get('records');
+  const futures = DB.get('futures') || [];
   const totalAsset = assets.reduce((s,a)=>s+(+a.amount||0),0);
   const totalDebt = debts.reduce((s,d)=>s+(+d.amount||0),0);
   const netWorth = totalAsset - totalDebt;
@@ -1196,10 +1198,23 @@ function renderFinance(){
   const income = monthRecords.filter(r=>r.type==='income').reduce((s,r)=>s+(+r.amount||0),0);
   const expense = monthRecords.filter(r=>r.type==='expense').reduce((s,r)=>s+(+r.amount||0),0);
 
+  // 期货盈亏汇总
+  const today = new Date().toISOString().slice(0,10);
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
+  const weekStartStr = weekStart.toISOString().slice(0,10);
+  const monthStart = today.slice(0,7);
+  const futuresSorted = [...futures].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const futuresToday = futures.filter(f=>f.date===today).reduce((s,f)=>s+(+f.amount||0),0);
+  const futuresWeek = futures.filter(f=>f.date>=weekStartStr).reduce((s,f)=>s+(+f.amount||0),0);
+  const futuresMonth = futures.filter(f=>(f.date||'').slice(0,7)===monthStart).reduce((s,f)=>s+(+f.amount||0),0);
+  const futuresTotal = futures.reduce((s,f)=>s+(+f.amount||0),0);
+
   document.getElementById('pageActions').innerHTML = `
     <button class="btn btn-primary btn-sm" onclick="openAssetModal()">+ 资产</button>
     <button class="btn btn-danger btn-sm" onclick="openDebtModal()">+ 负债</button>
     <button class="btn btn-primary btn-sm" onclick="openRecordModal()">+ 收支</button>
+    <button class="btn btn-sm" style="background:#f59e0b;color:#fff" onclick="openFutureModal()">+ 盈亏</button>
   `;
 
   document.getElementById('content').innerHTML = `
@@ -1212,6 +1227,19 @@ function renderFinance(){
       <div class="stat-card positive"><div class="label">本月收入</div><div class="value">¥${fmt(income)}</div><div class="icon">📈</div></div>
       <div class="stat-card negative"><div class="label">本月支出</div><div class="value">¥${fmt(expense)}</div><div class="icon">📉</div></div>
       <div class="stat-card ${income-expense>=0?'positive':'negative'}"><div class="label">本月结余</div><div class="value">¥${fmt(income-expense)}</div><div class="icon">💾</div></div>
+    </div>
+    <div class="card" style="border-left:3px solid #f59e0b">
+      <div class="card-title">
+        <span class="left"><span class="dot" style="background:#f59e0b"></span>📊 期货盈亏</span>
+        <button class="btn btn-ghost btn-sm" onclick="openFutureModal()">+ 记盈亏</button>
+      </div>
+      <div class="stats-grid" style="margin-bottom:14px">
+        <div class="stat-card ${futuresToday>=0?'positive':'negative'}"><div class="label">今日盈亏</div><div class="value" style="font-size:22px">${futuresToday>=0?'+':'-'}¥${fmt(Math.abs(futuresToday))}</div><div class="icon">${futuresToday>=0?'📈':'📉'}</div></div>
+        <div class="stat-card ${futuresWeek>=0?'positive':'negative'}"><div class="label">本周盈亏</div><div class="value" style="font-size:22px">${futuresWeek>=0?'+':'-'}¥${fmt(Math.abs(futuresWeek))}</div><div class="icon">📅</div></div>
+        <div class="stat-card ${futuresMonth>=0?'positive':'negative'}"><div class="label">本月盈亏</div><div class="value" style="font-size:22px">${futuresMonth>=0?'+':'-'}¥${fmt(Math.abs(futuresMonth))}</div><div class="icon">📆</div></div>
+        <div class="stat-card ${futuresTotal>=0?'positive':'negative'}"><div class="label">累计盈亏</div><div class="value" style="font-size:22px">${futuresTotal>=0?'+':'-'}¥${fmt(Math.abs(futuresTotal))}</div><div class="icon">🏆</div></div>
+      </div>
+      ${futuresSorted.length ? `<div class="card-list" style="display:flex">${futuresSorted.slice(0,30).map(f=>`<div class="rec-card" style="border-left:3px solid ${(+f.amount||0)>=0?'var(--success)':'var(--danger)'}"><div class="rec-main"><div><div class="rec-name">${f.date||'-'}</div>${f.note?`<div class="rec-label">${esc(f.note)}</div>`:''}</div><div class="rec-amount" style="color:${(+f.amount||0)>=0?'var(--success)':'var(--danger)'}">${(+f.amount||0)>=0?'+':'-'}¥${fmt(Math.abs(+f.amount||0))}</div></div><div class="rec-row"><span class="rec-label"></span><span class="rec-val"><span class="task-edit" onclick="editFuture('${f.id}')" style="cursor:pointer;font-size:13px;color:var(--primary);margin-right:12px">编辑</span><span class="task-del" onclick="delItem('futures','${f.id}')">删除</span></span></div></div>`).join('')}</div>` : '<div class="empty"><div class="emoji">📊</div>暂无期货盈亏记录</div>'}
     </div>
     <div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--primary)"></span>资产明细</span><button class="btn btn-ghost btn-sm" onclick="openAssetModal()">+ 添加</button></div>${assets.length ? renderFinanceTable(assets,'asset') : '<div class="empty"><div class="emoji">💰</div>暂无资产记录</div>'}</div>
     <div class="card"><div class="card-title"><span class="left"><span class="dot" style="background:var(--danger)"></span>负债明细</span><button class="btn btn-ghost btn-sm" onclick="openDebtModal()">+ 添加</button></div>${debts.length ? renderFinanceTable(debts,'debt') : '<div class="empty"><div class="emoji">📉</div>暂无负债记录</div>'}</div>
@@ -1290,6 +1318,23 @@ function editRecord(id){
     {key:'category',label:'分类',type:'select',options:['工资','奖金','带货收入','广告费','其他收入','餐饮','交通','购物','房租','水电','娱乐','教育','医疗','其他支出'],value:r.category||'其他支出'},
     {key:'note',label:'备注',placeholder:'可选',value:r.note||''},
   ],(data)=>{DB.update('records',id,{...data,amount:+data.amount}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
+}
+
+// 期货盈亏记录
+function openFutureModal(){
+  modalForm('记录期货盈亏',[
+    {key:'date',label:'日期',type:'date',value:new Date().toISOString().slice(0,10),required:true},
+    {key:'amount',label:'盈亏金额（元）',type:'number',placeholder:'盈利填正数，亏损填负数，如 -500',required:true},
+    {key:'note',label:'备注',placeholder:'可选，如：螺纹钢/纯碱'},
+  ],(data)=>{const item={id:uid(),date:data.date,amount:+data.amount,note:data.note||''};DB.insert('futures',item).then(ok=>{ if(ok){ toast('盈亏已记录 ✓'); renderContent(); } });});
+}
+function editFuture(id){
+  const f=DB.get('futures').find(x=>x.id===id);if(!f)return;
+  modalForm('编辑期货盈亏',[
+    {key:'date',label:'日期',type:'date',value:f.date||'',required:true},
+    {key:'amount',label:'盈亏金额（元）',type:'number',required:true,value:f.amount},
+    {key:'note',label:'备注',placeholder:'可选',value:f.note||''},
+  ],(data)=>{DB.update('futures',id,{date:data.date,amount:+data.amount,note:data.note||''}).then(ok=>{ if(ok){ toast('已更新 ✓'); renderContent(); } });});
 }
 
 // ============ 待办（工作/生活） ============
@@ -1575,6 +1620,7 @@ async function init(){
     DB.sync('records'),
     DB.sync('scripts'),
     DB.sync('stats'),
+    DB.sync('futures'),
   ]);
   
   renderSidebar();
@@ -1584,7 +1630,7 @@ async function init(){
   // 页面重新可见时自动同步（切回标签页时拉取最新数据）
   document.addEventListener('visibilitychange', async ()=>{
     if(!document.hidden){
-      await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+      await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('futures')]);
       renderSidebar();
       renderBottomNav();
       renderContent();
@@ -1593,7 +1639,7 @@ async function init(){
   
   // 每15秒自动同步一次（保持多端数据新鲜）
   setInterval(async()=>{
-    await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts')]);
+    await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('futures')]);
     renderSidebar();
     renderBottomNav();
     if(['overview','todos','finance'].includes(currentPage)) renderContent();
@@ -1603,7 +1649,7 @@ async function init(){
 // 手动强制同步（可用于按钮调用）
 async function forceSync(){
   toast('正在同步...');
-  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats')]);
+  await Promise.all([DB.sync('tasks'),DB.sync('todos'),DB.sync('assets'),DB.sync('debts'),DB.sync('records'),DB.sync('scripts'),DB.sync('stats'),DB.sync('futures')]);
   renderSidebar();
   renderBottomNav();
   renderContent();
